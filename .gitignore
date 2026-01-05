@@ -5,6 +5,22 @@ env/
 ENV/
 *.venv
 
+
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+
+
+# Alembic generated / local
+backend/migrations/env.py
+backend/migrations/script.py.mako
+backend/migrations/README   # если не кастомный
+
+
 # Byte-compiled / optimized files
 __pycache__/
 *.py[cod]
