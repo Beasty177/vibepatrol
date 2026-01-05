@@ -1,16 +1,29 @@
-# Виртуалки и окружения
+# Python virtual environments
+.venv/
 venv/
-.env
-*.pyc
-__pycache__/
+env/
+ENV/
+*.venv
 
-# Логи и временные
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
 *.log
 logs/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# MP3/медиа (если добавим)
-*.mp3

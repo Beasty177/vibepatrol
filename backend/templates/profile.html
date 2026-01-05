@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Мой вайб • VibePatrol</title>
+  <style>
+    body { 
+      font-family: system-ui, sans-serif; 
+      background: linear-gradient(135deg, #1a1a2e, #16213e); 
+      color: #fff; 
+      margin: 0; 
+      padding: 20px; 
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 500px;
+      margin: 40px auto;
+      background: rgba(255,255,255,0.05);
+      padding: 40px;
+      border-radius: 20px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    h1 { 
+      font-size: 2.5em; 
+      margin: 0 0 10px; 
+      text-align: center;
+    }
+    p { text-align: center; opacity: 0.9; }
+    label { 
+      display: block; 
+      margin: 20px 0 8px; 
+      font-weight: 600;
+    }
+    input, select {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      background: rgba(255,255,255,0.1);
+      color: white;
+      font-size: 1.1em;
+    }
+    input::placeholder { color: #aaa; }
+    button {
+      width: 100%;
+      background: #667eea;
+      color: white;
+      padding: 16px;
+      border: none;
+      border-radius: 16px;
+      font-size: 1.3em;
+      font-weight: bold;
+      margin-top: 30px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    button:hover { background: #764ba2; transform: translateY(-2px); }
+    .buttons {
+      display: flex;
+      gap: 15px;
+      margin-top: 40px;
+      justify-content: center;
+    }
+    .btn {
+      display: inline-block;
+      padding: 12px 24px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-size: 1.1em;
+      font-weight: 600;
+    }
+    .btn-home {
+      background: #555;
+      color: white;
+    }
+    .btn-logout {
+      background: #ff6b6b;
+      color: white;
+    }
+    .btn:hover { transform: translateY(-3px); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Привет, {{ user.first_name or "братан" }}!</h1>
+    <p>Настрой свой вайб на вечеринке</p>
+
+    <label>Любимая музыка</label>
+    <input type="text" id="music" placeholder="Techno, Hip-Hop, Rock..." value="{{ user.vibe_data.get('music','') }}">
+
+    <label>Танцы — это</label>
+    <select id="dance">
+      <option value="не танцую" {% if user.vibe_data.get('dance') == 'не танцую' %}selected{% endif %}>не танцую</option>
+      <option value="иногда" {% if user.vibe_data.get('dance') == 'иногда' %}selected{% endif %}>иногда</option>
+      <option value="всегда на танцполе" {% if user.vibe_data.get('dance') == 'всегда на танцполе' %}selected{% endif %}>всегда на танцполе</option>
+    </select>
+
+    <label>Любимый напиток</label>
+    <input type="text" id="drink" placeholder="Beer, Cocktail, Water..." value="{{ user.vibe_data.get('drink','') }}">
+
+    <button onclick="save()">Сохранить вайб</button>
+
+    <div class="buttons">
+      <a href="/" class="btn btn-home">← На главную</a>
+      <a href="/full-logout" class="btn btn-logout">Выйти из аккаунта</a>
+    </div>
+  </div>
+
+  <script>
+    function save() {
+      const data = {
+        music: document.getElementById('music').value.trim(),
+        dance: document.getElementById('dance').value,
+        drink: document.getElementById('drink').value.trim()
+      };
+      fetch('/save-vibe', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+      })
+      .then(r => r.json())
+      .then(res => {
+        if (res.status === "saved") {
+          alert('Вайб сохранён! 🔥');
+        }
+      })
+      .catch(() => alert('Ошибка сохранения'));
+    }
+  </script>
+</body>
+</html>

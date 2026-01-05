@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VibePatrol</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body { margin: 0; background: #1a1a2e; color: white; font-family: system-ui; padding: 20px; }
+    .container { max-width: 500px; margin: 0 auto; }
+    h1 { text-align: center; font-size: 2em; }
+    input, select { width: 100%; padding: 14px; margin: 10px 0; border-radius: 12px; border: none; background: rgba(255,255,255,0.1); color: white; }
+    button { width: 100%; background: #667eea; color: white; padding: 16px; border: none; border-radius: 16px; font-size: 1.3em; margin-top: 20px; }
+    .btn { background: #0088cc; margin-top: 10px; }
+    .btn-danger { background: #ff6b6b; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 id="greeting">Привет!</h1>
+    <p>Настрой свой вайб</p>
+
+    <label>Музыка</label>
+    <input type="text" id="music">
+
+    <label>Танцы</label>
+    <select id="dance">
+      <option value="не танцую">не танцую</option>
+      <option value="иногда">иногда</option>
+      <option value="всегда на танцполе">всегда на танцполе</option>
+    </select>
+
+    <label>Напитки</label>
+    <input type="text" id="drink">
+
+    <button onclick="save()">Сохранить</button>
+    <button class="btn" onclick="location.href='/'">На главную</button>
+    <button class="btn btn-danger" onclick="location.href='/full-logout'">Выйти</button>
+  </div>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+
+    const user = tg.initDataUnsafe.user;
+    document.getElementById("greeting").textContent = `Привет, ${user.first_name || "братан"}!`;
+
+    // Загружаем текущий вайб
+    fetch('/api/user/' + user.id)
+      .then(r => r.json())
+      .then(data => {
+        if (data.vibe_data) {
+          document.getElementById("music").value = data.vibe_data.music || "";
+          document.getElementById("dance").value = data.vibe_data.dance || "не танцую";
+          document.getElementById("drink").value = data.vibe_data.drink || "";
+        }
+      });
+
+    function save() {
+      const data = {
+        music: document.getElementById("music").value,
+        dance: document.getElementById("dance").value,
+        drink: document.getElementById("drink").value
+      };
+      fetch('/save-vibe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).then(() => alert("Вайб сохранён! 🔥"));
+    }
+  </script>
+</body>
+</html>

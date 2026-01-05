@@ -1,0 +1,19 @@
+[Unit]
+Description=VibePatrol Telegram Bot
+After=network.target
+
+[Service]
+User=beasty197
+Group=beasty197
+WorkingDirectory=/home/beasty197/projects/vibepatrol/bot
+Environment="PATH=/home/beasty197/projects/vibepatrol/.env"
+Environment="PATH=/home/beasty197/projects/vibepatrol/.venv/bin"
+Environment="PYTHONUNBUFFERED=1"
+ExecStart=/home/beasty197/projects/vibepatrol/.venv/bin/python main.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
