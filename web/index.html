@@ -1,216 +1,270 @@
 <!DOCTYPE html>
+# Проверка Git 
+
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>VibePatrol — Знакомства на вечеринках по вайбу</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
       min-height: 100vh;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      text-align: center;
-      padding: 20px;
+      padding: 20px 16px;
     }
+
     .container {
-      background: rgba(255, 255, 255, 0.1);
-      padding: 60px 40px;
-      border-radius: 30px;
-      backdrop-filter: blur(15px);
-      box-shadow: 0 20px 50px rgba(0,0,0,0.4);
-      max-width: 800px;
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(16px);
+      border-radius: 28px;
+      padding: 48px 32px;
       width: 100%;
+      max-width: 860px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.38);
+      border: 1px solid rgba(255,255,255,0.12);
     }
+
     h1 {
-      font-size: 4.5em;
-      margin-bottom: 20px;
-      animation: heartbeat 3s ease-in-out infinite;
+      font-size: clamp(3.2rem, 12vw, 5.5rem);
+      font-weight: 800;
+      letter-spacing: -1px;
+      margin-bottom: 0.4em;
+      animation: heartbeat 3.2s ease-in-out infinite;
     }
+
     @keyframes heartbeat {
       0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.05); }
+      50%      { transform: scale(1.04); }
     }
-    p {
-      font-size: 1.5em;
-      margin: 30px 0;
-      opacity: 0.9;
+
+    .tagline {
+      font-size: clamp(1.3rem, 5vw, 1.7rem);
+      opacity: 0.92;
+      line-height: 1.45;
+      margin: 0.8em 0 2em;
     }
+
     .btn {
-      display: inline-block;
-      background: #0088cc;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.35rem;
+      font-weight: 700;
+      padding: 16px 48px;
+      border-radius: 999px;
+      text-decoration: none;
       color: white;
-      font-size: 1.6em;
-      font-weight: bold;
-      padding: 18px 50px;
-      border-radius: 50px;
-      text-decoration: none;
-      margin: 20px 10px;
-      transition: all 0.3s;
-      box-shadow: 0 10px 30px rgba(0,136,204,0.4);
+      transition: all 0.28s ease;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      margin: 12px 8px;
+      border: none;
+      cursor: pointer;
     }
-    .btn:hover {
-      background: #006fa0;
-      transform: translateY(-5px);
-      box-shadow: 0 15px 40px rgba(0,136,204,0.6);
+
+    .btn-primary {
+      background: #00c2ff;
+      box-shadow: 0 10px 30px rgba(0, 194, 255, 0.4);
     }
-    .login-btn {
-      background: #00d4ff;
-      box-shadow: 0 10px 30px rgba(0,212,255,0.4);
+    .btn-primary:hover {
+      background: #00a0d8;
+      transform: translateY(-3px);
+      box-shadow: 0 16px 40px rgba(0, 194, 255, 0.55);
     }
-    .login-btn:hover {
-      background: #00b0d4;
+
+    .btn-profile {
+      background: #ff5e5e;
+      box-shadow: 0 10px 30px rgba(255, 94, 94, 0.4);
     }
-    .logout-link {
-      margin-top: 40px;
-      font-size: 1.1em;
+    .btn-profile:hover {
+      background: #e04a4a;
+      transform: translateY(-3px);
     }
-    .logout-link a {
-      color: #ff6b6b;
-      text-decoration: none;
-      padding: 10px 20px;
-      background: rgba(255,107,107,0.2);
-      border-radius: 12px;
+
+    .avatar {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid rgba(255,255,255,0.25);
+      margin: 24px auto 16px;
+      display: block;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.4);
     }
-    .logout-link a:hover {
-      background: rgba(255,107,107,0.4);
+
+    .greeting {
+      font-size: 2.1rem;
+      margin-bottom: 0.4em;
     }
-    .footer {
-      margin-top: 60px;
-      font-size: 0.9em;
-      opacity: 0.7;
+
+    .section-title {
+      font-size: 1.5rem;
+      opacity: 0.9;
+      margin: 2em 0 1em;
     }
+
     table {
       width: 100%;
-      margin: 30px 0;
       border-collapse: collapse;
-      font-size: 1.2em;
-      max-height: 300px; /* Ограничим высоту таблицы, если много строк */
-      overflow-y: auto;
-      display: block;
+      font-size: 1.1rem;
+      margin: 1.5em 0;
     }
+
     th, td {
-      padding: 15px;
-      border-bottom: 1px solid rgba(255,255,255,0.3);
+      padding: 14px 12px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,0.18);
     }
+
     th {
-      background: rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.12);
+      font-weight: 600;
     }
-    .profile-btn {
-      background: #ff6b6b;
-      box-shadow: 0 10px 30px rgba(255,107,107,0.4);
+
+    .logout {
+      margin-top: 2.5em;
+      font-size: 1.1rem;
     }
-    .profile-btn:hover {
-      background: #e05555;
+    .logout a {
+      color: #ff8a8a;
+      text-decoration: none;
+      padding: 10px 24px;
+      border-radius: 12px;
+      background: rgba(255,138,138,0.18);
+      transition: background 0.2s;
     }
-    .avatar {
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
-      margin: 20px auto;
-      display: block;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    .logout a:hover {
+      background: rgba(255,100,100,0.35);
     }
-    .hidden { display: none; }
+
+    .hidden { display: none !important; }
+
+    .footer-note {
+      margin-top: 3em;
+      font-size: 0.95rem;
+      opacity: 0.7;
+      text-align: center;
+    }
+
+    @media (max-width: 560px) {
+      .container { padding: 40px 24px; }
+      .btn { padding: 14px 36px; font-size: 1.2rem; }
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <!-- Зона без авторизации -->
-    <div id="guest-view">
-      <h1 class="heartbeat">VibePatrol</h1>
-      <p>Знакомства на вечеринках по вайбу<br>Музыка • Танцы • Напитки<br><br>
-         Находи людей с таким же вкусом на тусовках — матчинг по музыке, танцам и любимым напиткам!</p>
 
-      <a href="https://t.me/vibe_vibe_robot" class="btn login-btn">
-        Войти через Telegram
-      </a>
+<div class="container">
 
-      <div class="footer">
-        Один клик — и ты в деле ↑<br>Регистрация за секунду!
-      </div>
+  <!-- ── Гость ─────────────────────────────────────────────── -->
+  <div id="guest-view">
+    <h1>VibePatrol</h1>
+    <div class="tagline">
+      Знакомства на вечеринках по вайбу<br>
+      <strong>Музыка • Танцы • Напитки</strong><br><br>
+      Находи своих людей на тусовках — матчинг по настоящему вайбу
     </div>
 
-    <!-- Зона с авторизацией -->
-    <div id="auth-view" class="hidden">
-      <h1>Привет, <span id="user-name">братан</span>! 👋</h1>
-      <img id="user-avatar" class="avatar" src="" alt="Аватар" /> <!-- Кружочек аватара -->
-      <p>Твои ближайшие вечеринки по вайбу: здесь матчи и вайб-матчинг ждут! 🔥</p> <!-- Основная инфа -->
+    <a href="https://t.me/vibe_vibe_robot" class="btn btn-primary">
+      Войти через Telegram
+    </a>
 
-      <table>
-        <thead>
-          <tr>
-            <th>Дата</th>
-            <th>Мероприятие</th>
-            <th>Где</th>
-            <th>Вайб</th>
-          </tr>
-        </thead>
-        <tbody id="events-table">
-          <tr>
-            <td>12 декабря</td>
-            <td>Techno Night</td>
-            <td>Клуб "Pulse", Москва</td>
-            <td>Электронная музыка • Коктейли</td>
-          </tr>
-          <tr>
-            <td>15 декабря</td>
-            <td>Hip-Hop Party</td>
-            <td>Bar "Vibe", СПб</td>
-            <td>Рэп • Пиво • Танцы</td>
-          </tr>
-          <tr>
-            <td>20 декабря</td>
-            <td>House Vibes</td>
-            <td>Лофт "Beat", Екат</td>
-            <td>Хаус • Вино • Чилл</td>
-          </tr>
-          <!-- Добавь больше строк динамически, если backend отдаст события -->
-        </tbody>
-      </table>
-
-      <a href="/me" class="btn profile-btn">Личная анкета (заполнить/редактировать)</a> <!-- Ссылка на анкету -->
-
-      <div class="logout-link">
-        <a href="/full-logout">Выйти из аккаунта</a>
-      </div>
-
-      <div class="footer">
-        Здесь твои матчи и вайб-матчинг ждут! 🔥
-      </div>
+    <div class="footer-note">
+      Один клик → и ты уже в игре 🔥
     </div>
   </div>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const guestView = document.getElementById("guest-view");
-      const authView = document.getElementById("auth-view");
-      const userNameSpan = document.getElementById("user-name");
-      const userAvatarImg = document.getElementById("user-avatar");
+  <!-- ── Авторизован ───────────────────────────────────────── -->
+  <div id="auth-view" class="hidden">
+    <img id="user-avatar" class="avatar" src="" alt=""/>
 
-      fetch('/api/user/current', { credentials: 'include' })
-        .then(r => {
-          if (!r.ok) throw new Error('Not authenticated');
-          return r.json();
-        })
-        .then(data => {
-          if (data.id) {
-            guestView.classList.add("hidden");
-            authView.classList.remove("hidden");
-            userNameSpan.textContent = data.first_name || data.username || "братан";
-            userAvatarImg.src = data.profile_picture_url || 'https://via.placeholder.com/100'; // Fallback если нет аватара
-          }
-        })
-        .catch(() => {
-          // Остаётся гостевой вид, если ошибка или нет авторизации
-          guestView.classList.remove("hidden");
-          authView.classList.add("hidden");
-        });
-    });
-  </script>
+    <h2 class="greeting">Привет, <span id="user-name">братан</span>! 👋</h2>
+
+    <div class="section-title">Ближайшие вайб-ивенты с матчами</div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Когда</th>
+          <th>Туса</th>
+          <th>Место</th>
+          <th>Вайб</th>
+        </tr>
+      </thead>
+      <tbody id="events-table">
+        <!-- будет заполняться через JS или SSR позже -->
+        <tr>
+          <td>12 дек</td>
+          <td>Techno Night</td>
+          <td>Pulse, Москва</td>
+          <td>Техно • Коктейли</td>
+        </tr>
+        <tr>
+          <td>15 дек</td>
+          <td>Hip-Hop Jam</td>
+          <td>Vibe Bar, СПб</td>
+          <td>Рэп • Пиво • Движ</td>
+        </tr>
+        <tr>
+          <td>21 дек</td>
+          <td>House & Chill</td>
+          <td>Loft Beat, Екб</td>
+          <td>Хаус • Вино • Релакс</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <a href="/me" class="btn btn-profile">Моя анкета →</a>
+
+    <div class="logout">
+      <a href="/full-logout">Выйти</a>
+    </div>
+
+    <div class="footer-note">
+      Твои матчи и вайб-совпадения уже ждут 🔥
+    </div>
+  </div>
+
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const guest = document.getElementById("guest-view");
+    const auth  = document.getElementById("auth-view");
+    const nameSpan = document.getElementById("user-name");
+    const avatar   = document.getElementById("user-avatar");
+
+    fetch('/api/user/current', { credentials: 'include' })
+      .then(r => {
+        if (!r.ok) throw new Error('unauthorized');
+        return r.json();
+      })
+      .then(user => {
+        if (user && user.id) {
+          guest.classList.add("hidden");
+          auth.classList.remove("hidden");
+
+          nameSpan.textContent = user.first_name || user.username || "братан";
+          avatar.src = user.profile_picture_url || "https://via.placeholder.com/96?text=😎";
+        }
+      })
+      .catch(() => {
+        // остаёмся на гостевом виде
+        guest.classList.remove("hidden");
+        auth.classList.add("hidden");
+      });
+  });
+</script>
 </body>
 </html>
