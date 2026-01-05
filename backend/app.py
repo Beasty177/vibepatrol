@@ -161,5 +161,86 @@ def current_user():
         "profile_picture_url": f"https://t.me/i/userpic/320/{user.username}.jpg" if user.username else "https://via.placeholder.com/100"
     }), 200
 
+
+# ------------------ АДМИНКА ------------------
+ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')  # в .env 
+
+# Простая проверка админа (в будущем → отдельная таблица/роль)
+def is_admin():
+    return session.get('is_admin', False)
+
+@app.route('/admin', methods=['GET', 'POST'])
+def admin_panel():
+    if request.method == 'POST':
+        password = request.form.get('password')
+        if password == ADMIN_PASSWORD:
+            session['is_admin'] = True
+            return redirect('/admin')
+        else:
+            return render_template_string("""
+                <h2 style="color:red">Неверный пароль, бро 😈</h2>
+                <form method="post">
+                    <input type="password" name="password" placeholder="Пароль" required>
+                    <button type="submit">Войти</button>
+                </form>
+            """, password_error=True)
+
+    if not is_admin():
+        return render_template_string("""
+            <!DOCTYPE html>
+            <html lang="ru">
+            <head><meta charset="utf-8"><title>Admin Login</title>
+            <style>body{background:#1a1a2e;color:#e0e0ff;font-family:sans-serif;text-align:center;padding:100px 20px;}
+            input,button{padding:14px;font-size:1.2rem;margin:12px;border-radius:8px;border:1px solid #5a4a8a;background:#2a2a40;color:white;}
+            button{background:#7c3aed;cursor:pointer;}
+            button:hover{background:#6d28d9;}</style>
+            </head>
+            <body>
+            <h1>VibePatrol Admin</h1>
+            <form method="post">
+                <input type="password" name="password" placeholder="Пароль..." required autocomplete="off">
+                <br><button type="submit">Войти</button>
+            </form>
+            </body></html>
+        """)
+
+    # Если админ → отдаём страницу
+    return app.send_static_file('admin.html')  # лежит в /web/admin.html
+
+
+@app.route('/api/admin/users')
+def api_admin_users():
+    if not is_admin():
+        return jsonify({"error": "access denied"}), 403
+
+    users = User.query.order_by(User.created_at.desc()).all()
+    result = []
+    for u in users:
+        result.append({
+            "id": u.id,
+            "name": u.first_name or "—",
+            "username": u.username or "—",
+            "tg_id": str(u.id),  # telegram id = наш pk
+            "reg_date": u.created_at.strftime("%Y-%m-%d %H:%M"),
+            "photo": f"https://t.me/i/userpic/320/{u.username}.jpg" if u.username else None,
+            "tags": ", ".join(u.vibe_data.get("tags", [])) if u.vibe_data else "—"
+        })
+    return jsonify(result)
+
+
+@app.route('/api/admin/events')
+def api_admin_events():
+    if not is_admin():
+        return jsonify({"error": "access denied"}), 403
+
+    # Пока заглушка — потом сделаем модель Event
+    fake_events = [
+        {"date": "2026-01-15", "title": "Techno Eclipse", "place": "Pulse Club, Москва", "vibe": "Техно, Коктейли, Лазеры", "participants": 42},
+        {"date": "2026-01-22", "title": "Hip-Hop Takeover", "place": "Vibe Bar, СПб", "vibe": "Рэп, Пиво, Баттлы", "participants": 78},
+        {"date": "2026-02-01", "title": "Deep House & Wine", "place": "Loft 77, Екат", "vibe": "Хаус, Вино, Чилл", "participants": 31},
+    ]
+    return jsonify(fake_events)
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5003, debug=True)
