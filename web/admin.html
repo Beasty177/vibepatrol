@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VibePatrol Admin Panel</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #1e1e2f 0%, #2a1a3a 100%);
+      color: #e0e0ff;
+      min-height: 100vh;
+      padding: 20px;
+      line-height: 1.5;
+    }
+    .container { max-width: 1280px; margin: 0 auto; }
+    h1 { text-align: center; color: #a78bfa; margin: 0.8em 0 0.4em; font-size: 2.6rem; }
+    .section { margin: 2.5rem 0; background: rgba(35, 35, 55, 0.65); padding: 1.8rem; border-radius: 16px; border: 1px solid #4a3b6e; }
+    h2 { color: #c4b5fd; margin-bottom: 1.2rem; font-size: 1.6rem; }
+    .controls { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 1.2rem; align-items: center; }
+    select, input[type="text"], input[type="password"], button {
+      padding: 10px 14px;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: 1px solid #5a4a8a;
+      background: #2a2a40;
+      color: #e0e0ff;
+    }
+    input[type="password"], input[type="text"] { width: 220px; }
+    button {
+      background: #7c3aed;
+      border: none;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    button:hover { background: #6d28d9; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.98rem;
+      background: rgba(20,20,40,0.4);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    th, td { padding: 12px 14px; text-align: left; }
+    th {
+      background: rgba(90, 74, 138, 0.55);
+      cursor: pointer;
+      user-select: none;
+    }
+    th:hover { background: rgba(100, 84, 148, 0.7); }
+    tr:hover { background: rgba(60, 60, 90, 0.35); }
+    .avatar-small {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      vertical-align: middle;
+      margin-right: 10px;
+      border: 1px solid #5a4a8a;
+    }
+    .tg-id { color: #60a5fa; font-family: monospace; }
+    .empty { text-align: center; padding: 3rem; color: #888; font-style: italic; font-size: 1.1rem; }
+    .error-msg { color: #ff6b6b; text-align: center; margin: 2rem 0; font-size: 1.2rem; }
+    .loading { text-align: center; padding: 4rem; font-size: 1.3rem; opacity: 0.8; }
+    .logout { text-align: center; margin: 3rem 0; font-size: 1.1rem; }
+    .logout a {
+      color: #ff8a8a;
+      text-decoration: none;
+      padding: 12px 28px;
+      border-radius: 12px;
+      background: rgba(255,138,138,0.18);
+      transition: 0.2s;
+    }
+    .logout a:hover { background: rgba(255,100,100,0.4); }
+
+    /* Форма логина — компактная и красивая */
+    .login-form {
+      max-width: 400px;
+      margin: 2rem auto;
+      background: rgba(35, 35, 55, 0.65);
+      padding: 2rem;
+      border-radius: 16px;
+      border: 1px solid #4a3b6e;
+      text-align: center;
+    }
+    .login-form label {
+      display: block;
+      margin: 1rem 0 0.5rem;
+      font-weight: 600;
+      text-align: left;
+      max-width: 300px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .login-form input {
+      width: 100%;
+      max-width: 300px;
+      margin: 0.5rem auto;
+      display: block;
+    }
+    .login-form button {
+      width: 100%;
+      max-width: 300px;
+      margin-top: 1.5rem;
+    }
+
+    .hidden { display: none !important; }
+
+    @media (max-width: 768px) {
+      table, thead, tbody, th, td, tr { display: block; }
+      thead tr { display: none; }
+      tr { margin: 1.2rem 0; border: 1px solid #4a3b6e; border-radius: 10px; background: rgba(40,40,60,0.6); }
+      td { border: none; padding: 14px 16px 14px 50%; position: relative; text-align: right; }
+      td:before {
+        content: attr(data-label);
+        position: absolute;
+        left: 16px;
+        width: 45%;
+        font-weight: 600;
+        text-align: left;
+        color: #c4b5fd;
+      }
+      .controls { flex-direction: column; align-items: stretch; }
+      .login-form { padding: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container" id="app">
+  <h1>VibePatrol Admin Panel</h1>
+
+  <div id="loading" class="loading">Загрузка данных...</div>
+  <div id="error" class="error-msg hidden"></div>
+
+  <!-- Форма логина (показывается только если не залогинен) -->
+  <div id="login-section" class="login-form">
+    <h2>Вход в админку</h2>
+    <form id="admin-login-form">
+      <label for="admin-login">Login</label>
+      <input type="text" id="admin-login" placeholder="Login" value="login" required>
+
+      <label for="admin-password">Password</label>
+      <input type="Password" id="admin-password" placeholder="password" required autocomplete="off">
+
+      <button type="submit">Войти</button>
+    </form>
+  </div>
+
+  <!-- Пользователи -->
+  <div class="section hidden" id="users-section">
+    <h2>Пользователи</h2>
+    <div class="controls">
+      <select id="users-sort">
+        <option value="reg-desc">По дате регистрации ↓</option>
+        <option value="reg-asc">По дате регистрации ↑</option>
+        <option value="name-asc">По имени A-Z</option>
+        <option value="name-desc">По имени Z-A</option>
+      </select>
+      <input type="text" id="users-search" placeholder="Поиск по имени / @username / TG ID..."/>
+      <button onclick="loadData()">Обновить</button>
+    </div>
+    <table id="users-table">
+      <thead>
+        <tr>
+          <th>Фото</th>
+          <th data-sort="name">Имя</th>
+          <th data-sort="username">Username</th>
+          <th>TG ID</th>
+          <th>Регистрация</th>
+          <th>Вайб-теги</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- Мероприятия (заглушка пока) -->
+  <div class="section hidden" id="events-section">
+    <h2>Мероприятия (пока заглушка)</h2>
+    <div class="controls">
+      <select id="events-sort">
+        <option value="date-asc">По дате ↑</option>
+        <option value="date-desc" selected>По дате ↓</option>
+        <option value="title-asc">По названию A-Z</option>
+        <option value="title-desc">По названию Z-A</option>
+      </select>
+      <input type="text" id="events-search" placeholder="Поиск по названию / месту..."/>
+      <button onclick="loadData()">Обновить</button>
+    </div>
+    <table id="events-table">
+      <thead>
+        <tr>
+          <th data-sort="date">Дата</th>
+          <th data-sort="title">Название</th>
+          <th data-sort="place">Место</th>
+          <th>Вайб</th>
+          <th>Участников</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- Кнопка выхода -->
+  <div class="logout hidden" id="logout-section">
+    <a href="/admin-logout">Выйти из админки</a>
+  </div>
+</div>
+
+<script>
+let usersData = [];
+let eventsData = [];
+
+// Загружаем данные только после успешного логина
+async function loadData() {
+  const loading = document.getElementById('loading');
+  const errorDiv = document.getElementById('error');
+  const usersSection = document.getElementById('users-section');
+  const eventsSection = document.getElementById('events-section');
+  const logoutSection = document.getElementById('logout-section');
+
+  loading.style.display = 'block';
+  errorDiv.classList.add('hidden');
+
+  try {
+    const usersRes = await fetch('/api/admin/users', { credentials: 'include' });
+    if (!usersRes.ok) {
+      if (usersRes.status === 403 || usersRes.status === 401) {
+        showLoginForm();
+        return;
+      }
+      throw new Error(`Ошибка ${usersRes.status}`);
+    }
+    usersData = await usersRes.json();
+
+    const eventsRes = await fetch('/api/admin/events', { credentials: 'include' });
+    eventsData = eventsRes.ok ? await eventsRes.json() : [];
+
+    renderUsers(usersData);
+    renderEvents(eventsData);
+
+    usersSection.classList.remove('hidden');
+    eventsSection.classList.remove('hidden');
+    logoutSection.classList.remove('hidden');
+    document.getElementById('login-section').classList.add('hidden');
+  } catch (err) {
+    errorDiv.textContent = `Не удалось загрузить данные: ${err.message}`;
+    errorDiv.classList.remove('hidden');
+  } finally {
+    loading.style.display = 'none';
+  }
+}
+
+function renderUsers(list) {
+  const tbody = document.querySelector('#users-table tbody');
+  tbody.innerHTML = '';
+
+  if (!list?.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty">Нет пользователей или ошибка загрузки</td></tr>';
+    return;
+  }
+
+  const sort = document.getElementById('users-sort').value;
+  const search = document.getElementById('users-search').value.toLowerCase().trim();
+
+  let filtered = list.filter(u => {
+    const name = (u.name || '').toLowerCase();
+    const username = (u.username || '').toLowerCase();
+    const tgId = (u.tg_id || '').toString();
+    const tags = (u.tags || '').toLowerCase();
+    return !search || name.includes(search) || username.includes(search) || tgId.includes(search) || tags.includes(search);
+  });
+
+  if (sort === 'reg-desc') filtered.sort((a,b) => b.reg_date.localeCompare(a.reg_date));
+  if (sort === 'reg-asc')  filtered.sort((a,b) => a.reg_date.localeCompare(b.reg_date));
+  if (sort === 'name-asc') filtered.sort((a,b) => (a.name || '').localeCompare(b.name || ''));
+  if (sort === 'name-desc') filtered.sort((a,b) => (b.name || '').localeCompare(a.name || ''));
+
+  filtered.forEach(u => {
+    const photo = u.photo ? `<img src="${u.photo}" class="avatar-small" alt="${u.name || '—'}"/>` : '—';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="Фото">${photo}</td>
+      <td data-label="Имя">${u.name || '—'}</td>
+      <td data-label="Username">${u.username || '—'}</td>
+      <td data-label="TG ID" class="tg-id">${u.tg_id || '—'}</td>
+      <td data-label="Регистрация">${u.reg_date || '—'}</td>
+      <td data-label="Вайб-теги">${u.tags || '—'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderEvents(list) {
+  const tbody = document.querySelector('#events-table tbody');
+  tbody.innerHTML = '';
+  if (!list?.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty">Мероприятий пока нет (заглушка)</td></tr>';
+    return;
+  }
+
+  const sort = document.getElementById('events-sort').value;
+  const search = document.getElementById('events-search').value.toLowerCase().trim();
+
+  let filtered = list.filter(e =>
+    !search ||
+    (e.title || '').toLowerCase().includes(search) ||
+    (e.place || '').toLowerCase().includes(search) ||
+    (e.vibe || '').toLowerCase().includes(search)
+  );
+
+  if (sort === 'date-desc') filtered.sort((a,b) => b.date.localeCompare(a.date));
+  if (sort === 'date-asc') filtered.sort((a,b) => a.date.localeCompare(b.date));
+  if (sort === 'title-asc') filtered.sort((a,b) => (a.title || '').localeCompare(b.title || ''));
+  if (sort === 'title-desc') filtered.sort((a,b) => (b.title || '').localeCompare(a.title || ''));
+
+  filtered.forEach(e => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="Дата">${e.date || '—'}</td>
+      <td data-label="Название">${e.title || '—'}</td>
+      <td data-label="Место">${e.place || '—'}</td>
+      <td data-label="Вайб">${e.vibe || '—'}</td>
+      <td data-label="Участников">${e.participants || '—'}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function showLoginForm() {
+  document.getElementById('login-section').classList.remove('hidden');
+  document.getElementById('users-section').classList.add('hidden');
+  document.getElementById('events-section').classList.add('hidden');
+  document.getElementById('logout-section').classList.add('hidden');
+}
+
+// Обработка формы логина через JS
+document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const password = document.getElementById('admin-password').value;
+
+  try {
+    const res = await fetch('/admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `password=${encodeURIComponent(password)}`,
+      credentials: 'include'
+    });
+
+    if (res.redirected || res.ok) {
+      loadData();
+    } else {
+      alert('Неверный пароль, бро 😈');
+    }
+  } catch (err) {
+    alert('Ошибка входа');
+  }
+});
+
+// Слушатели
+document.getElementById('users-sort').addEventListener('change', () => renderUsers(usersData));
+document.getElementById('users-search').addEventListener('input', () => renderUsers(usersData));
+document.getElementById('events-sort').addEventListener('change', () => renderEvents(eventsData));
+document.getElementById('events-search').addEventListener('input', () => renderEvents(eventsData));
+
+// При загрузке
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadData();
+});
+</script>
+</body>
+</html>

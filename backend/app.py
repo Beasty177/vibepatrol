@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, redirect, session, make_response
+from flask import Flask, request, jsonify, redirect, session, make_response, send_from_directory, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from dotenv import load_dotenv
@@ -6,24 +6,29 @@ import os
 import hashlib
 import hmac
 import datetime
+from datetime import timedelta
 
 load_dotenv()
 
 app = Flask(__name__)
+
+# Конфиг
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.secret_key = os.getenv('SECRET_KEY', 'super-secret-key-2025')
+app.secret_key = os.getenv('SECRET_KEY', 'super-secret-key-2025-vibe')
 
-# HTTPS уже стоит — безопасные куки
+# Сессии: HTTPS-only, SameSite=None для Telegram Mini Apps и админки
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'None'  # с большой N!
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
 app.config['SESSION_COOKIE_PATH'] = '/'
-app.config['SESSION_COOKIE_DOMAIN'] = None  # работает на текущем домене
+app.config['SESSION_COOKIE_DOMAIN'] = None
+app.permanent_session_lifetime = timedelta(hours=12)  # админ сессия живёт 12 часов
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
+# ── Модели ───────────────────────────────────────────────────────────────
 class User(db.Model):
     __tablename__ = 'users'
     id = db.Column(db.BigInteger, primary_key=True)
@@ -32,10 +37,13 @@ class User(db.Model):
     vibe_data = db.Column(db.JSON, default=dict)
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
+
+# ── Telegram Auth Check ─────────────────────────────────────────────────
 def check_telegram_auth(data):
     token = os.getenv("TELEGRAM_BOT_TOKEN")
     if not token:
-        return True  # тестовый режим
+        return True  # dev mode без проверки
+
     data = data.copy()
     try:
         received_hash = data.pop('hash')
@@ -43,22 +51,26 @@ def check_telegram_auth(data):
         if abs(datetime.datetime.now().timestamp() - auth_date) > 86400:
             print("Auth failed: old auth_date")
             return False
-        # Убираем пустые поля — иначе хеш не совпадёт
+
         clean_data = {k: v for k, v in data.items() if v}
         data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(clean_data.items()))
         secret_key = hashlib.sha256(token.encode()).digest()
         calculated_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+
         if calculated_hash != received_hash:
-            print(f"Hash mismatch: calculated {calculated_hash}, received {received_hash}")
+            print(f"Hash mismatch: calc {calculated_hash}, recv {received_hash}")
             return False
         return True
     except Exception as e:
         print("Telegram auth error:", e)
         return False
 
+
+# ── Роуты ────────────────────────────────────────────────────────────────
 @app.route('/')
 def hello():
     return "VibePatrol backend живой, бро! 🔥"
+
 
 @app.route('/api/user/<int:telegram_id>', methods=['GET', 'POST'])
 def user_api(telegram_id):
@@ -72,17 +84,19 @@ def user_api(telegram_id):
             "first_name": user.first_name,
             "vibe_data": user.vibe_data
         })
+
     data = request.get_json() or {}
     if not user:
         user = User(id=telegram_id)
         db.session.add(user)
+
     user.username = data.get('username', user.username)
     user.first_name = data.get('first_name', user.first_name)
     user.vibe_data = data.get('vibe_data', user.vibe_data)
     db.session.commit()
     return jsonify({"status": "ok"})
 
-# КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: редирект сразу на главную, а не на /me
+
 @app.route('/login/telegram', methods=['GET', 'POST'])
 def telegram_login():
     if request.method == 'POST':
@@ -104,45 +118,13 @@ def telegram_login():
             )
             db.session.add(user)
             db.session.commit()
+
         session['user_id'] = user_id
-        resp = make_response(redirect('/'))  # Явно для куков
-        return resp
+        session.permanent = True
+        return make_response(redirect('/'))
     else:
         return "Ошибка авторизации — данные неверны или устарели", 401
 
-@app.route('/me')
-def profile():
-    if 'user_id' not in session:
-        return redirect('/')
-    user = User.query.get(session['user_id'])
-    try:
-        return render_template('profile.html', user=user)
-    except:
-        return f"<h1>Привет, {user.first_name or 'братан'}!</h1><p>Анкета по вайбу в разработке... 🔥</p><a href='/'>На главную</a> | <a href='/full-logout'>Выйти</a>"
-
-@app.route('/login')
-def login_page():
-    return redirect('/')
-
-@app.route('/save-vibe', methods=['POST'])
-def save_vibe():
-    if 'user_id' not in session:
-        return "unauthorized", 401
-    user = User.query.get(session['user_id'])
-    user.vibe_data = request.get_json() or {}
-    db.session.commit()
-    return jsonify({"status": "saved"})
-
-@app.route('/logout')
-def logout():
-    return redirect('/')
-
-@app.route('/full-logout')
-def full_logout():
-    session.clear()
-    response = make_response(redirect('/'))
-    response.set_cookie('session', '', expires=0, path='/', secure=True, httponly=True, samesite='None')
-    return response
 
 @app.route('/api/user/current')
 def current_user():
@@ -162,12 +144,52 @@ def current_user():
     }), 200
 
 
-# ------------------ АДМИНКА ------------------
-ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')  # в .env 
+@app.route('/save-vibe', methods=['POST'])
+def save_vibe():
+    if 'user_id' not in session:
+        return jsonify({"error": "unauthorized"}), 401
 
-# Простая проверка админа (в будущем → отдельная таблица/роль)
+    user = User.query.get(session['user_id'])
+    user.vibe_data = request.get_json() or {}
+    db.session.commit()
+    return jsonify({"status": "saved"})
+
+
+@app.route('/me')
+def profile():
+    if 'user_id' not in session:
+        return redirect('/')
+
+    user = User.query.get(session['user_id'])
+    if not user:
+        session.clear()
+        return redirect('/')
+
+    try:
+        return render_template('profile.html', user=user)
+    except Exception as e:
+        return f"Ошибка рендеринга шаблона: {str(e)}", 500
+
+
+@app.route('/logout')
+def logout():
+    return redirect('/')
+
+
+@app.route('/full-logout')
+def full_logout():
+    session.clear()
+    resp = make_response(redirect('/'))
+    resp.set_cookie('session', '', expires=0, path='/', secure=True, httponly=True, samesite='None')
+    return resp
+
+
+# ── АДМИНКА ──────────────────────────────────────────────────────────────
+ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')  # меняй в .env!
+
 def is_admin():
     return session.get('is_admin', False)
+
 
 @app.route('/admin', methods=['GET', 'POST'])
 def admin_panel():
@@ -175,37 +197,25 @@ def admin_panel():
         password = request.form.get('password')
         if password == ADMIN_PASSWORD:
             session['is_admin'] = True
-            return redirect('/admin')
+            session.permanent = True
+            session.modified = True
+            return redirect('/admin', code=302)
         else:
-            return render_template_string("""
-                <h2 style="color:red">Неверный пароль, бро 😈</h2>
-                <form method="post">
-                    <input type="password" name="password" placeholder="Пароль" required>
-                    <button type="submit">Войти</button>
-                </form>
-            """, password_error=True)
+            # Просто редирект на /admin — форма покажется на фронте
+            return redirect('/admin')
 
-    if not is_admin():
-        return render_template_string("""
-            <!DOCTYPE html>
-            <html lang="ru">
-            <head><meta charset="utf-8"><title>Admin Login</title>
-            <style>body{background:#1a1a2e;color:#e0e0ff;font-family:sans-serif;text-align:center;padding:100px 20px;}
-            input,button{padding:14px;font-size:1.2rem;margin:12px;border-radius:8px;border:1px solid #5a4a8a;background:#2a2a40;color:white;}
-            button{background:#7c3aed;cursor:pointer;}
-            button:hover{background:#6d28d9;}</style>
-            </head>
-            <body>
-            <h1>VibePatrol Admin</h1>
-            <form method="post">
-                <input type="password" name="password" placeholder="Пароль..." required autocomplete="off">
-                <br><button type="submit">Войти</button>
-            </form>
-            </body></html>
-        """)
+    # Всегда отдаём статический admin.html — пусть фронт сам решает, показывать форму или таблицы
+    return send_from_directory(
+        '/home/beasty197/projects/vibepatrol/web',
+        'admin.html'
+    )
 
-    # Если админ → отдаём страницу
-    return app.send_static_file('admin.html')  # лежит в /web/admin.html
+
+@app.route('/admin-logout')
+def admin_logout():
+    session.pop('is_admin', None)
+    session.modified = True
+    return redirect('/admin')
 
 
 @app.route('/api/admin/users')
@@ -217,13 +227,12 @@ def api_admin_users():
     result = []
     for u in users:
         result.append({
-            "id": u.id,
             "name": u.first_name or "—",
             "username": u.username or "—",
-            "tg_id": str(u.id),  # telegram id = наш pk
+            "tg_id": str(u.id),
             "reg_date": u.created_at.strftime("%Y-%m-%d %H:%M"),
             "photo": f"https://t.me/i/userpic/320/{u.username}.jpg" if u.username else None,
-            "tags": ", ".join(u.vibe_data.get("tags", [])) if u.vibe_data else "—"
+            "tags": ", ".join(u.vibe_data.get("tags", [])) if u.vibe_data and isinstance(u.vibe_data, dict) else "—"
         })
     return jsonify(result)
 
@@ -233,7 +242,7 @@ def api_admin_events():
     if not is_admin():
         return jsonify({"error": "access denied"}), 403
 
-    # Пока заглушка — потом сделаем модель Event
+    # Пока заглушка — ждём модель Event
     fake_events = [
         {"date": "2026-01-15", "title": "Techno Eclipse", "place": "Pulse Club, Москва", "vibe": "Техно, Коктейли, Лазеры", "participants": 42},
         {"date": "2026-01-22", "title": "Hip-Hop Takeover", "place": "Vibe Bar, СПб", "vibe": "Рэп, Пиво, Баттлы", "participants": 78},

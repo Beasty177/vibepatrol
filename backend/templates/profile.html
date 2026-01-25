@@ -33,7 +33,7 @@
       margin: 20px 0 8px; 
       font-weight: 600;
     }
-    input, select {
+    select, input {
       width: 100%;
       padding: 14px;
       border-radius: 12px;
@@ -41,6 +41,21 @@
       background: rgba(255,255,255,0.1);
       color: white;
       font-size: 1.1em;
+      appearance: none; /* убираем стандартную стрелку */
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpolygon points='6 9 1 4 11 4' fill='white'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      background-size: 12px;
+    }
+    select option {
+      background: #1a1a2e; /* тёмный фон для выпадающего списка */
+      color: white; /* белый текст в опциях */
+    }
+    select:focus, input:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px #667eea;
     }
     input::placeholder { color: #aaa; }
     button {
@@ -87,18 +102,43 @@
     <h1>Привет, {{ user.first_name or "братан" }}!</h1>
     <p>Настрой свой вайб на вечеринке</p>
 
+    {% set vibe = user.vibe_data if user.vibe_data and vibe_data is mapping else {} %}
+
     <label>Любимая музыка</label>
-    <input type="text" id="music" placeholder="Techno, Hip-Hop, Rock..." value="{{ user.vibe_data.get('music','') }}">
+    <select id="music">
+      <option value="" disabled {% if not vibe.get('music') %}selected{% endif %}>Выбери жанр...</option>
+      <option value="Techno" {% if vibe.get('music') == 'Techno' %}selected{% endif %}>Techno</option>
+      <option value="House" {% if vibe.get('music') == 'House' %}selected{% endif %}>House</option>
+      <option value="Hip-Hop" {% if vibe.get('music') == 'Hip-Hop' %}selected{% endif %}>Hip-Hop</option>
+      <option value="Drum & Bass" {% if vibe.get('music') == 'Drum & Bass' %}selected{% endif %}>Drum & Bass</option>
+      <option value="Trance" {% if vibe.get('music') == 'Trance' %}selected{% endif %}>Trance</option>
+      <option value="Rock" {% if vibe.get('music') == 'Rock' %}selected{% endif %}>Rock</option>
+      <option value="Pop" {% if vibe.get('music') == 'Pop' %}selected{% endif %}>Pop</option>
+      <option value="Электроника" {% if vibe.get('music') == 'Электроника' %}selected{% endif %}>Электроника</option>
+      <option value="Другое" {% if vibe.get('music') == 'Другое' %}selected{% endif %}>Другое</option>
+    </select>
 
     <label>Танцы — это</label>
     <select id="dance">
-      <option value="не танцую" {% if user.vibe_data.get('dance') == 'не танцую' %}selected{% endif %}>не танцую</option>
-      <option value="иногда" {% if user.vibe_data.get('dance') == 'иногда' %}selected{% endif %}>иногда</option>
-      <option value="всегда на танцполе" {% if user.vibe_data.get('dance') == 'всегда на танцполе' %}selected{% endif %}>всегда на танцполе</option>
+      <option value="" disabled {% if not vibe.get('dance') %}selected{% endif %}>Выбери вариант...</option>
+      <option value="не танцую" {% if vibe.get('dance') == 'не танцую' %}selected{% endif %}>не танцую</option>
+      <option value="иногда" {% if vibe.get('dance') == 'иногда' %}selected{% endif %}>иногда</option>
+      <option value="всегда на танцполе" {% if vibe.get('dance') == 'всегда на танцполе' %}selected{% endif %}>всегда на танцполе</option>
     </select>
 
     <label>Любимый напиток</label>
-    <input type="text" id="drink" placeholder="Beer, Cocktail, Water..." value="{{ user.vibe_data.get('drink','') }}">
+    <select id="drink">
+      <option value="" disabled {% if not vibe.get('drink') %}selected{% endif %}>Выбери напиток...</option>
+      <option value="Beer" {% if vibe.get('drink') == 'Beer' %}selected{% endif %}>Beer / Пиво</option>
+      <option value="Cocktail" {% if vibe.get('drink') == 'Cocktail' %}selected{% endif %}>Cocktail / Коктейль</option>
+      <option value="Wine" {% if vibe.get('drink') == 'Wine' %}selected{% endif %}>Wine / Вино</option>
+      <option value="Vodka" {% if vibe.get('drink') == 'Vodka' %}selected{% endif %}>Vodka / Водка</option>
+      <option value="Whiskey" {% if vibe.get('drink') == 'Whiskey' %}selected{% endif %}>Whiskey / Виски</option>
+      <option value="Gin Tonic" {% if vibe.get('drink') == 'Gin Tonic' %}selected{% endif %}>Gin Tonic</option>
+      <option value="Water" {% if vibe.get('drink') == 'Water' %}selected{% endif %}>Water / Вода</option>
+      <option value="Energy Drink" {% if vibe.get('drink') == 'Energy Drink' %}selected{% endif %}>Energy Drink</option>
+      <option value="Другое" {% if vibe.get('drink') == 'Другое' %}selected{% endif %}>Другое</option>
+    </select>
 
     <button onclick="save()">Сохранить вайб</button>
 
