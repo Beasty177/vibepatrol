@@ -7,6 +7,8 @@ import hashlib
 import hmac
 import datetime
 from datetime import timedelta
+import logging
+from logging.handlers import RotatingFileHandler
 
 load_dotenv()
 
@@ -27,6 +29,17 @@ app.permanent_session_lifetime = timedelta(hours=12)  # админ сессия 
 
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
+
+# Настройка логирования в отдельный файл
+log_dir = os.path.join(os.path.dirname(__file__), '..', 'logs')
+os.makedirs(log_dir, exist_ok=True)
+log_file = os.path.join(log_dir, 'vibepatrol.log')
+
+logging.basicConfig(level=logging.DEBUG)
+handler = RotatingFileHandler(log_file, maxBytes=10*1024*1024, backupCount=5)  # 10MB + 5 бэкапов
+handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+app.logger.addHandler(handler)
+app.logger.setLevel(logging.DEBUG)
 
 # ── Модели ───────────────────────────────────────────────────────────────
 class User(db.Model):
@@ -150,9 +163,14 @@ def save_vibe():
         return jsonify({"error": "unauthorized"}), 401
 
     user = User.query.get(session['user_id'])
-    user.vibe_data = request.get_json() or {}
+    if not user:
+        return jsonify({"error": "user not found"}), 404
+
+    data = request.get_json() or {}
+    user.vibe_data = data
     db.session.commit()
-    return jsonify({"status": "saved"})
+    app.logger.info(f"Vibe saved for user {user.id}: {data}")
+    return jsonify({"status": "saved", "vibe_data": user.vibe_data})
 
 
 @app.route('/me')
@@ -160,14 +178,20 @@ def profile():
     if 'user_id' not in session:
         return redirect('/')
 
-    user = User.query.get(session['user_id'])
+    user_id = session['user_id']
+    user = User.query.filter_by(id=user_id).first()
+
     if not user:
         session.clear()
         return redirect('/')
 
+    # Debug лог в файл logs/vibepatrol.log
+    app.logger.info(f"Debug /me: User ID {user_id}, Fresh Vibe Data: {user.vibe_data}")
+
     try:
         return render_template('profile.html', user=user)
     except Exception as e:
+        app.logger.error(f"Render error in /me: {str(e)}")
         return f"Ошибка рендеринга шаблона: {str(e)}", 500
 
 
@@ -201,10 +225,8 @@ def admin_panel():
             session.modified = True
             return redirect('/admin', code=302)
         else:
-            # Просто редирект на /admin — форма покажется на фронте
             return redirect('/admin')
 
-    # Всегда отдаём статический admin.html — пусть фронт сам решает, показывать форму или таблицы
     return send_from_directory(
         '/home/beasty197/projects/vibepatrol/web',
         'admin.html'
@@ -226,13 +248,15 @@ def api_admin_users():
     users = User.query.order_by(User.created_at.desc()).all()
     result = []
     for u in users:
+        vibe = u.vibe_data or {}
         result.append({
             "name": u.first_name or "—",
             "username": u.username or "—",
             "tg_id": str(u.id),
             "reg_date": u.created_at.strftime("%Y-%m-%d %H:%M"),
             "photo": f"https://t.me/i/userpic/320/{u.username}.jpg" if u.username else None,
-            "tags": ", ".join(u.vibe_data.get("tags", [])) if u.vibe_data and isinstance(u.vibe_data, dict) else "—"
+            "tags": ", ".join(vibe.get("tags", [])) if isinstance(vibe, dict) else "—",
+            "vibe_data": vibe
         })
     return jsonify(result)
 
@@ -242,7 +266,7 @@ def api_admin_events():
     if not is_admin():
         return jsonify({"error": "access denied"}), 403
 
-    # Пока заглушка — ждём модель Event
+    # Пока заглушка
     fake_events = [
         {"date": "2026-01-15", "title": "Techno Eclipse", "place": "Pulse Club, Москва", "vibe": "Техно, Коктейли, Лазеры", "participants": 42},
         {"date": "2026-01-22", "title": "Hip-Hop Takeover", "place": "Vibe Bar, СПб", "vibe": "Рэп, Пиво, Баттлы", "participants": 78},

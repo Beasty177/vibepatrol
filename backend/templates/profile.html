@@ -14,9 +14,9 @@
       min-height: 100vh;
     }
     .container {
-      max-width: 500px;
+      max-width: 520px;
       margin: 40px auto;
-      background: rgba(255,255,255,0.05);
+      background: rgba(73, 25, 132, 0.05);
       padding: 40px;
       border-radius: 20px;
       backdrop-filter: blur(10px);
@@ -27,146 +27,191 @@
       margin: 0 0 10px; 
       text-align: center;
     }
-    p { text-align: center; opacity: 0.9; }
+    p { text-align: center; opacity: 0.9; margin-bottom: 2rem; }
     label { 
       display: block; 
-      margin: 20px 0 8px; 
+      margin: 1.8rem 0 0.6rem; 
       font-weight: 600;
+      font-size: 1.1em;
     }
-    select, input {
+    select {
       width: 100%;
-      padding: 14px;
+      padding: 14px 40px 14px 16px;   /* чуть больше места справа под стрелку */
       border-radius: 12px;
       border: none;
-      background: rgba(255,255,255,0.1);
-      color: white;
-      font-size: 1.1em;
-      appearance: none; /* убираем стандартную стрелку */
-      -webkit-appearance: none;
-      -moz-appearance: none;
-      background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpolygon points='6 9 1 4 11 4' fill='white'/%3E%3C/svg%3E");
+      background: #333360;            /* ← тёмный фон, текст белый теперь читается */
+      color: #ffffff;
+      font-size: 1.05em;
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpolygon points='6 9 1 4 11 4' fill='%23ffffff'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
-      background-position: right 14px center;
+      background-position: right 16px center;
       background-size: 12px;
     }
     select option {
-      background: #1a1a2e; /* тёмный фон для выпадающего списка */
-      color: white; /* белый текст в опциях */
+      background: #1e1e35;           /* тёмный фон для выпадашки */
+      color: #e0e0ff;
     }
-    select:focus, input:focus {
+    select:focus {
       outline: none;
-      box-shadow: 0 0 0 2px #667eea;
+      box-shadow: 0 0 0 3px #667eea88;
     }
-    input::placeholder { color: #aaa; }
     button {
       width: 100%;
-      background: #667eea;
+      background: linear-gradient(90deg, #667eea, #764ba2);
       color: white;
       padding: 16px;
       border: none;
       border-radius: 16px;
-      font-size: 1.3em;
+      font-size: 1.25em;
       font-weight: bold;
-      margin-top: 30px;
+      margin: 2.5rem 0 1rem;
       cursor: pointer;
-      transition: 0.3s;
+      transition: all 0.25s;
     }
-    button:hover { background: #764ba2; transform: translateY(-2px); }
+    button:hover { 
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    }
     .buttons {
       display: flex;
-      gap: 15px;
-      margin-top: 40px;
+      gap: 16px;
+      margin-top: 2.5rem;
       justify-content: center;
     }
     .btn {
-      display: inline-block;
-      padding: 12px 24px;
+      padding: 12px 28px;
       border-radius: 12px;
       text-decoration: none;
-      font-size: 1.1em;
+      font-size: 1.05em;
       font-weight: 600;
+      transition: all 0.2s;
     }
-    .btn-home {
-      background: #555;
-      color: white;
+    .btn-home  { background: #444; color: white; }
+    .btn-logout { background: #ff5555; color: white; }
+    .btn:hover { transform: translateY(-2px); }
+    #save-message {
+      margin: 1.5rem 0;
+      padding: 1rem;
+      border-radius: 12px;
+      text-align: center;
+      font-weight: 600;
+      display: none;
     }
-    .btn-logout {
-      background: #ff6b6b;
-      color: white;
+    #save-message.success {
+      background: rgba(102, 238, 170, 0.25);
+      color: #aaffcc;
     }
-    .btn:hover { transform: translateY(-3px); }
+    #save-message.error {
+      background: rgba(255, 107, 107, 0.25);
+      color: #ffaaaa;
+    }
+    /* debug-блок удалён полностью */
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Привет, {{ user.first_name or "братан" }}!</h1>
-    <p>Настрой свой вайб на вечеринке</p>
+    <p>Настрой свой вайб — это поможет найти свою тусу 🔥</p>
 
-    {% set vibe = user.vibe_data if user.vibe_data and vibe_data is mapping else {} %}
+    {% set vibe = user.vibe_data or {} %}
 
     <label>Любимая музыка</label>
     <select id="music">
-      <option value="" disabled {% if not vibe.get('music') %}selected{% endif %}>Выбери жанр...</option>
-      <option value="Techno" {% if vibe.get('music') == 'Techno' %}selected{% endif %}>Techno</option>
-      <option value="House" {% if vibe.get('music') == 'House' %}selected{% endif %}>House</option>
-      <option value="Hip-Hop" {% if vibe.get('music') == 'Hip-Hop' %}selected{% endif %}>Hip-Hop</option>
-      <option value="Drum & Bass" {% if vibe.get('music') == 'Drum & Bass' %}selected{% endif %}>Drum & Bass</option>
-      <option value="Trance" {% if vibe.get('music') == 'Trance' %}selected{% endif %}>Trance</option>
-      <option value="Rock" {% if vibe.get('music') == 'Rock' %}selected{% endif %}>Rock</option>
-      <option value="Pop" {% if vibe.get('music') == 'Pop' %}selected{% endif %}>Pop</option>
-      <option value="Электроника" {% if vibe.get('music') == 'Электроника' %}selected{% endif %}>Электроника</option>
-      <option value="Другое" {% if vibe.get('music') == 'Другое' %}selected{% endif %}>Другое</option>
+      <option value="" disabled selected>Выбери жанр...</option>
+      {% for opt in ["Techno", "House", "Hip-Hop", "Drum & Bass", "Trance", "Rock", "Pop", "Электроника", "Другое"] %}
+        <option value="{{ opt }}" {% if vibe.music and vibe.music.strip() == opt %}selected{% endif %}>
+          {{ opt }}
+        </option>
+      {% endfor %}
     </select>
 
     <label>Танцы — это</label>
     <select id="dance">
-      <option value="" disabled {% if not vibe.get('dance') %}selected{% endif %}>Выбери вариант...</option>
-      <option value="не танцую" {% if vibe.get('dance') == 'не танцую' %}selected{% endif %}>не танцую</option>
-      <option value="иногда" {% if vibe.get('dance') == 'иногда' %}selected{% endif %}>иногда</option>
-      <option value="всегда на танцполе" {% if vibe.get('dance') == 'всегда на танцполе' %}selected{% endif %}>всегда на танцполе</option>
+      <option value="" disabled selected>Выбери вариант...</option>
+      {% for opt in ["не танцую", "иногда", "всегда на танцполе"] %}
+        <option value="{{ opt }}" {% if vibe.dance and vibe.dance.strip() == opt %}selected{% endif %}>
+          {{ opt }}
+        </option>
+      {% endfor %}
     </select>
 
     <label>Любимый напиток</label>
     <select id="drink">
-      <option value="" disabled {% if not vibe.get('drink') %}selected{% endif %}>Выбери напиток...</option>
-      <option value="Beer" {% if vibe.get('drink') == 'Beer' %}selected{% endif %}>Beer / Пиво</option>
-      <option value="Cocktail" {% if vibe.get('drink') == 'Cocktail' %}selected{% endif %}>Cocktail / Коктейль</option>
-      <option value="Wine" {% if vibe.get('drink') == 'Wine' %}selected{% endif %}>Wine / Вино</option>
-      <option value="Vodka" {% if vibe.get('drink') == 'Vodka' %}selected{% endif %}>Vodka / Водка</option>
-      <option value="Whiskey" {% if vibe.get('drink') == 'Whiskey' %}selected{% endif %}>Whiskey / Виски</option>
-      <option value="Gin Tonic" {% if vibe.get('drink') == 'Gin Tonic' %}selected{% endif %}>Gin Tonic</option>
-      <option value="Water" {% if vibe.get('drink') == 'Water' %}selected{% endif %}>Water / Вода</option>
-      <option value="Energy Drink" {% if vibe.get('drink') == 'Energy Drink' %}selected{% endif %}>Energy Drink</option>
-      <option value="Другое" {% if vibe.get('drink') == 'Другое' %}selected{% endif %}>Другое</option>
+      <option value="" disabled selected>Выбери напиток...</option>
+      {% set drink_options = [
+        ("Beer",        "Пиво"),
+        ("Cocktail",    "Коктейль"),
+        ("Wine",        "Вино"),
+        ("Vodka",       "Водка"),
+        ("Whiskey",     "Виски"),
+        ("Gin Tonic",   "Gin Tonic"),
+        ("Water",       "Вода"),
+        ("Energy Drink","Энергетик"),
+        ("Другое",      "Другое")
+      ] %}
+      {% for val, label in drink_options %}
+        <option value="{{ val }}" {% if vibe.drink and vibe.drink.strip() == val %}selected{% endif %}>
+          {{ label }}
+        </option>
+      {% endfor %}
     </select>
 
     <button onclick="save()">Сохранить вайб</button>
 
+    <div id="save-message"></div>
+
     <div class="buttons">
       <a href="/" class="btn btn-home">← На главную</a>
-      <a href="/full-logout" class="btn btn-logout">Выйти из аккаунта</a>
+      <a href="/full-logout" class="btn btn-logout">Выйти</a>
     </div>
   </div>
 
   <script>
+    // скрипт без изменений
     function save() {
       const data = {
         music: document.getElementById('music').value.trim(),
-        dance: document.getElementById('dance').value,
+        dance: document.getElementById('dance').value.trim(),
         drink: document.getElementById('drink').value.trim()
       };
+
+      if (!data.music || !data.dance || !data.drink) {
+        showMessage('Заполни все поля, бро', 'error');
+        return;
+      }
+
       fetch('/save-vibe', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
+        credentials: 'include'
       })
       .then(r => r.json())
       .then(res => {
-        if (res.status === "saved") {
-          alert('Вайб сохранён! 🔥');
+        const msg = document.getElementById('save-message');
+        msg.style.display = 'block';
+        if (res.status === 'saved' || res.success) {
+          msg.className = 'success';
+          msg.textContent = 'Вайб сохранён! 🔥 Теперь тебя точно найдут';
+        } else {
+          msg.className = 'error';
+          msg.textContent = res.error || 'Что-то пошло не так...';
         }
       })
-      .catch(() => alert('Ошибка сохранения'));
+      .catch(err => {
+        const msg = document.getElementById('save-message');
+        msg.style.display = 'block';
+        msg.className = 'error';
+        msg.textContent = 'Ошибка соединения: ' + err.message;
+      });
+    }
+
+    function showMessage(text, type = 'success') {
+      const msg = document.getElementById('save-message');
+      msg.className = type;
+      msg.textContent = text;
+      msg.style.display = 'block';
     }
   </script>
 </body>

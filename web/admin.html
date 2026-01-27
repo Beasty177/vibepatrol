@@ -43,10 +43,9 @@
       border-radius: 8px;
       overflow: hidden;
     }
-    th, td { padding: 12px 14px; text-align: left; }
+    th, td { padding: 12px 14px; text-align: left; cursor: pointer; }
     th {
       background: rgba(90, 74, 138, 0.55);
-      cursor: pointer;
       user-select: none;
     }
     th:hover { background: rgba(100, 84, 148, 0.7); }
@@ -74,7 +73,7 @@
     }
     .logout a:hover { background: rgba(255,100,100,0.4); }
 
-    /* Форма логина — компактная и красивая */
+    /* Форма логина — компактная */
     .login-form {
       max-width: 400px;
       margin: 2rem auto;
@@ -105,6 +104,40 @@
       margin-top: 1.5rem;
     }
 
+    /* Модальное окно профиля */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.7);
+    }
+    .modal-content {
+      background: rgba(35, 35, 55, 0.95);
+      margin: 15% auto;
+      padding: 2rem;
+      border-radius: 16px;
+      border: 1px solid #4a3b6e;
+      width: 90%;
+      max-width: 600px;
+      color: #e0e0ff;
+      position: relative;
+    }
+    .close {
+      position: absolute;
+      right: 20px;
+      top: 10px;
+      color: #aaa;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .close:hover { color: white; }
+
     .hidden { display: none !important; }
 
     @media (max-width: 768px) {
@@ -123,6 +156,7 @@
       }
       .controls { flex-direction: column; align-items: stretch; }
       .login-form { padding: 1.5rem; }
+      .modal-content { margin: 10% auto; padding: 1.5rem; }
     }
   </style>
 </head>
@@ -134,15 +168,15 @@
   <div id="loading" class="loading">Загрузка данных...</div>
   <div id="error" class="error-msg hidden"></div>
 
-  <!-- Форма логина (показывается только если не залогинен) -->
+  <!-- Форма логина -->
   <div id="login-section" class="login-form">
     <h2>Вход в админку</h2>
     <form id="admin-login-form">
-      <label for="admin-login">Login</label>
-      <input type="text" id="admin-login" placeholder="Login" value="login" required>
+      <label for="admin-login">Логин</label>
+      <input type="text" id="admin-login" placeholder="Логин" value="admin" required>
 
-      <label for="admin-password">Password</label>
-      <input type="Password" id="admin-password" placeholder="password" required autocomplete="off">
+      <label for="admin-password">Пароль</label>
+      <input type="password" id="admin-password" placeholder="Пароль" required autocomplete="off">
 
       <button type="submit">Войти</button>
     </form>
@@ -176,7 +210,7 @@
     </table>
   </div>
 
-  <!-- Мероприятия (заглушка пока) -->
+  <!-- Мероприятия (заглушка) -->
   <div class="section hidden" id="events-section">
     <h2>Мероприятия (пока заглушка)</h2>
     <div class="controls">
@@ -207,13 +241,21 @@
   <div class="logout hidden" id="logout-section">
     <a href="/admin-logout">Выйти из админки</a>
   </div>
+
+  <!-- Модальное окно профиля -->
+  <div id="profile-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal()">&times;</span>
+      <h2 id="modal-name">Профиль участника</h2>
+      <div id="modal-content"></div>
+    </div>
+  </div>
 </div>
 
 <script>
 let usersData = [];
 let eventsData = [];
 
-// Загружаем данные только после успешного логина
 async function loadData() {
   const loading = document.getElementById('loading');
   const errorDiv = document.getElementById('error');
@@ -289,6 +331,8 @@ function renderUsers(list) {
       <td data-label="Регистрация">${u.reg_date || '—'}</td>
       <td data-label="Вайб-теги">${u.tags || '—'}</td>
     `;
+    tr.style.cursor = 'pointer';
+    tr.addEventListener('click', () => openProfileModal(u));
     tbody.appendChild(tr);
   });
 }
@@ -329,6 +373,35 @@ function renderEvents(list) {
   });
 }
 
+function openProfileModal(user) {
+  const modal = document.getElementById('profile-modal');
+  const content = document.getElementById('modal-content');
+  const name = document.getElementById('modal-name');
+
+  name.textContent = `Профиль: ${user.name || '—'} (@${user.username || 'без username'})`;
+
+  const vibe = user.vibe_data || {};
+
+  content.innerHTML = `
+    <p><strong>TG ID:</strong> ${user.tg_id || '—'}</p>
+    <p><strong>Имя:</strong> ${user.name || '—'}</p>
+    <p><strong>Username:</strong> ${user.username || '—'}</p>
+    <p><strong>Регистрация:</strong> ${user.reg_date || '—'}</p>
+    <p><strong>Фото:</strong> ${user.photo ? `<img src="${user.photo}" style="width:120px; border-radius:50%; border:2px solid #5a4a8a;">` : 'Нет фото'}</p>
+    <hr style="border-color:#4a3b6e; margin:1.5rem 0;">
+    <h3>Вайб-данные:</h3>
+    <p><strong>Музыка:</strong> ${vibe.music || '—'}</p>
+    <p><strong>Танцы:</strong> ${vibe.dance || '—'}</p>
+    <p><strong>Напиток:</strong> ${vibe.drink || '—'}</p>
+  `;
+
+  modal.style.display = 'block';
+}
+
+function closeModal() {
+  document.getElementById('profile-modal').style.display = 'none';
+}
+
 function showLoginForm() {
   document.getElementById('login-section').classList.remove('hidden');
   document.getElementById('users-section').classList.add('hidden');
@@ -336,7 +409,7 @@ function showLoginForm() {
   document.getElementById('logout-section').classList.add('hidden');
 }
 
-// Обработка формы логина через JS
+// Обработка формы логина
 document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const password = document.getElementById('admin-password').value;
@@ -364,6 +437,14 @@ document.getElementById('users-sort').addEventListener('change', () => renderUse
 document.getElementById('users-search').addEventListener('input', () => renderUsers(usersData));
 document.getElementById('events-sort').addEventListener('change', () => renderEvents(eventsData));
 document.getElementById('events-search').addEventListener('input', () => renderEvents(eventsData));
+
+// Закрытие модалки по клику вне окна
+window.addEventListener('click', (e) => {
+  const modal = document.getElementById('profile-modal');
+  if (e.target === modal) {
+    modal.style.display = 'none';
+  }
+});
 
 // При загрузке
 document.addEventListener('DOMContentLoaded', async () => {
