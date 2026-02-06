@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="{{ session.lang or 'ru' }}" dir="{{ 'rtl' if session.lang == 'he' else 'ltr' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ custom_gettext('Вход в панель администраторов') }}</title>
+    
+    <link rel="stylesheet" href="/static/css/admin/admin_login.css">
+</head>
+<body class="{{ 'rtl' if session.lang == 'he' else 'ltr' }}">
+
+    <div class="login-container">
+
+        <!-- Подключаем блок смены языка -->
+        {% include "partials/lang_switcher.html" %}
+
+        <h1>{{ custom_gettext('Вход в панель администраторов') }}</h1>
+
+        <form method="POST" action="{{ url_for('admin.admin_login') }}">
+            <div class="field">
+                <label for="username">{{ custom_gettext('Логин') }}</label>
+                <input type="text" id="username" name="username" placeholder="Admin" required autofocus>
+            </div>
+
+            <div class="field">
+                <label for="password">{{ custom_gettext('Пароль') }}</label>
+                <input type="password" id="password" name="password" placeholder="{{ custom_gettext('Пароль') }}" required>
+            </div>
+
+            <button type="submit">{{ custom_gettext('Войти') }}</button>
+
+            {% if error %}
+                <div class="error">{{ custom_gettext(error) }}</div>
+            {% endif %}
+        </form>
+
+    </div>
+
+</body>
+</html>

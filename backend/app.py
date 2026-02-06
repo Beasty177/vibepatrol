@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, redirect, session, make_response, send_from_directory
+from flask import Flask, request, jsonify, redirect, session, make_response, url_for, render_template, g
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from dotenv import load_dotenv
@@ -9,63 +9,90 @@ import datetime
 from datetime import timedelta
 import logging
 from logging.handlers import RotatingFileHandler
-import json
+from functools import wraps
+
+# Импортируем модели, чтобы Pylance не ругался и всё работало
+from models import db, User, Admin
 
 load_dotenv()
 
 app = Flask(__name__)
+
+# ── Логи — сразу после создания app ────────────────────────────────────────────────
+log_dir = os.path.join(os.path.dirname(__file__), '..', 'logs')
+os.makedirs(log_dir, exist_ok=True)
+log_file = os.path.join(log_dir, 'vibepatrol.log')
+
+logging.basicConfig(level=logging.DEBUG)
+handler = RotatingFileHandler(
+    log_file,
+    maxBytes=10*1024*1024,
+    backupCount=5
+)
+handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+
+app.logger.addHandler(handler)
+app.logger.setLevel(logging.DEBUG)
+
+app.logger.info("=== ЛОГГЕР УСПЕШНО ЗАПУЩЕН ===")
+app.logger.debug("Тест debug-сообщения сразу после инициализации")
 
 # Конфиг
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = os.getenv('SECRET_KEY', 'super-secret-key-2025-vibe')
 
-# Сессии: HTTPS-only, SameSite=None для Telegram Mini Apps и админки
+# Сессии
 app.config['SESSION_COOKIE_SECURE'] = True
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'None'
 app.config['SESSION_COOKIE_PATH'] = '/'
 app.config['SESSION_COOKIE_DOMAIN'] = None
-app.permanent_session_lifetime = timedelta(hours=12)  # админ сессия живёт 12 часов
+app.permanent_session_lifetime = timedelta(hours=12)
 
-db = SQLAlchemy(app)
+# ── Подключение переводов из отдельного файла ────────────────────────────────────────
+from translations import custom_gettext
+
+# Делаем функцию доступной во всех шаблонах
+app.jinja_env.globals['custom_gettext'] = custom_gettext
+
+# Сохраняем текущий язык в g (для custom_gettext)
+@app.before_request
+def set_current_lang():
+    g.current_lang = session.get('lang', 'ru')
+
+# db и migrate — инициализация после создания app
+db.init_app(app)
 migrate = Migrate(app, db)
 
-# Логи
-log_dir = os.path.join(os.path.dirname(__file__), '..', 'logs')
-os.makedirs(log_dir, exist_ok=True)
-log_file = os.path.join(log_dir, 'vibepatrol.log')
+# Специальный логгер для языка
+language_logger = logging.getLogger('vibepatrol.language')
+language_logger.setLevel(logging.DEBUG)
 
-logging.basicConfig(level=logging.DEBUG)
-handler = RotatingFileHandler(log_file, maxBytes=10*1024*1024, backupCount=5)
-handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
-app.logger.addHandler(handler)
-app.logger.setLevel(logging.DEBUG)
+if not language_logger.handlers:
+    lang_handler = RotatingFileHandler(
+        log_file,
+        maxBytes=10*1024*1024,
+        backupCount=5
+    )
+    lang_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    lang_handler.setFormatter(lang_formatter)
+    language_logger.addHandler(lang_handler)
 
-# ── Модели ───────────────────────────────────────────────────────────────
-class User(db.Model):
-    __tablename__ = 'users'
-    id = db.Column(db.BigInteger, primary_key=True)
-    username = db.Column(db.String(100))
-    first_name = db.Column(db.String(100))
-    vibe_data = db.Column(db.JSON, default=dict)
-    created_at = db.Column(db.DateTime, server_default=db.func.now())
+# ── Декоратор админки ────────────────────────────────────────────
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('is_admin'):
+            return redirect('/admin/login')
+        return f(*args, **kwargs)
+    return decorated_function
 
+# ── Blueprint админки ────────────────────────────────────────────
+from admin import admin_bp
+app.register_blueprint(admin_bp, url_prefix='/admin')
 
-class Event(db.Model):
-    __tablename__ = 'events'
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(200), nullable=False)
-    start_time = db.Column(db.DateTime, nullable=False)
-    main_place = db.Column(db.String(200), nullable=False)
-    zones = db.Column(db.JSON, default=list)          # список строк, напр. ["Возле бара", "Танцпол"]
-    vibe = db.Column(db.String(300))                  # "techno, deep house, cocktails"
-    description = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, server_default=db.func.now())
-    # participants_count можно добавить позже как отдельную таблицу many-to-many
-
-
-# ── Telegram Auth Check ─────────────────────────────────────────────────
+# ── Telegram Auth Check ──────────────────────────────────────────
 def check_telegram_auth(data):
     token = os.getenv("TELEGRAM_BOT_TOKEN")
     if not token:
@@ -92,140 +119,11 @@ def check_telegram_auth(data):
         app.logger.error(f"Telegram auth error: {e}")
         return False
 
-
-# ── Админ проверка ──────────────────────────────────────────────────────
-ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD')  # меняй в .env!
-
-def is_admin():
-    return session.get('is_admin', False)
-
-
-# ── Роуты ────────────────────────────────────────────────────────────────
+# ── Роуты ────────────────────────────────────────────────────────
 @app.route('/')
 def hello():
     return "VibePatrol backend живой, бро! 🔥"
 
-
-@app.route('/admin', methods=['GET', 'POST'])
-def admin_panel():
-    if request.method == 'POST':
-        password = request.form.get('password')
-        if password == ADMIN_PASSWORD:
-            session['is_admin'] = True
-            session.permanent = True
-            session.modified = True
-            return redirect('/admin', code=302)
-        else:
-            return redirect('/admin')
-
-    return send_from_directory(
-        '/home/beasty197/projects/vibepatrol/web',
-        'admin.html'
-    )
-
-
-@app.route('/admin-events.html')
-def admin_events_page():
-    if not is_admin():
-        return "Доступ запрещён. Войдите в админку.", 403
-
-    return send_from_directory(
-        '/home/beasty197/projects/vibepatrol/web',
-        'admin-events.html'
-    )
-
-
-@app.route('/admin-logout')
-def admin_logout():
-    session.pop('is_admin', None)
-    session.modified = True
-    return redirect('/admin')
-
-
-# ── API: Пользователи ───────────────────────────────────────────────────
-@app.route('/api/admin/users')
-def api_admin_users():
-    if not is_admin():
-        return jsonify({"error": "access denied"}), 403
-
-    users = User.query.order_by(User.created_at.desc()).all()
-    result = []
-    for u in users:
-        vibe = u.vibe_data or {}
-        result.append({
-            "name": u.first_name or "—",
-            "username": u.username or "—",
-            "tg_id": str(u.id),
-            "reg_date": u.created_at.strftime("%Y-%m-%d %H:%M"),
-            "photo": f"https://t.me/i/userpic/320/{u.username}.jpg" if u.username else None,
-            "tags": ", ".join(vibe.get("tags", [])) if isinstance(vibe, dict) else "—",
-            "vibe_data": vibe
-        })
-    return jsonify(result)
-
-
-# ── API: События (вечеринки) ────────────────────────────────────────────
-@app.route('/api/admin/events', methods=['GET', 'POST'])
-def api_admin_events():
-    if not is_admin():
-        return jsonify({"error": "access denied"}), 403
-
-    if request.method == 'GET':
-        events = Event.query.order_by(Event.start_time.desc()).all()
-        result = []
-        for e in events:
-            result.append({
-                "id": e.id,
-                "title": e.title,
-                "start_time": e.start_time.strftime("%Y-%m-%dT%H:%M"),
-                "main_place": e.main_place,
-                "zones": e.zones,
-                "vibe": e.vibe or "",
-                "description": e.description or "",
-                "participants": 0,  # пока заглушка, потом посчитаем
-                "created_at": e.created_at.strftime("%Y-%m-%d %H:%M")
-            })
-        return jsonify(result)
-
-    elif request.method == 'POST':
-        data = request.get_json()
-        if not data:
-            return jsonify({"error": "no data"}), 400
-
-        try:
-            new_event = Event(
-                title=data['title'],
-                start_time=datetime.datetime.fromisoformat(data['start_time'].replace('Z', '+00:00')),
-                main_place=data['main_place'],
-                zones=data.get('zones', []),
-                vibe=data.get('vibe', ''),
-                description=data.get('description', '')
-            )
-            db.session.add(new_event)
-            db.session.commit()
-
-            app.logger.info(f"Создана вечеринка: {new_event.title} (id={new_event.id})")
-
-            return jsonify({
-                "status": "created",
-                "event": {
-                    "id": new_event.id,
-                    "title": new_event.title,
-                    "start_time": new_event.start_time.strftime("%Y-%m-%dT%H:%M")
-                }
-            }), 201
-
-        except KeyError as ke:
-            return jsonify({"error": f"missing field: {ke}"}), 400
-        except ValueError as ve:
-            return jsonify({"error": f"invalid datetime format: {ve}"}), 400
-        except Exception as e:
-            db.session.rollback()
-            app.logger.error(f"Ошибка создания события: {e}")
-            return jsonify({"error": "server error"}), 500
-
-
-# ── Остальные роуты (Telegram, user, vibe и т.д.) ──────────────────────
 @app.route('/api/user/<int:telegram_id>', methods=['GET', 'POST'])
 def user_api(telegram_id):
     user = User.query.get(telegram_id)
@@ -250,36 +148,6 @@ def user_api(telegram_id):
     db.session.commit()
     return jsonify({"status": "ok"})
 
-
-@app.route('/login/telegram', methods=['GET', 'POST'])
-def telegram_login():
-    if request.method == 'POST':
-        data = request.get_json() or {}
-    else:
-        data = request.args.to_dict()
-
-    if not data or 'id' not in data:
-        return "Bad request", 400
-
-    if check_telegram_auth(data):
-        user_id = int(data['id'])
-        user = User.query.get(user_id)
-        if not user:
-            user = User(
-                id=user_id,
-                username=data.get('username'),
-                first_name=data.get('first_name')
-            )
-            db.session.add(user)
-            db.session.commit()
-
-        session['user_id'] = user_id
-        session.permanent = True
-        return make_response(redirect('/'))
-    else:
-        return "Ошибка авторизации — данные неверны или устарели", 401
-
-
 @app.route('/api/user/current')
 def current_user():
     if 'user_id' not in session:
@@ -292,11 +160,10 @@ def current_user():
 
     return jsonify({
         "id": user.id,
-        "first_name": user.first_name or "братан",
+        "first_name": user.first_name or "бро",
         "username": user.username or "безымянный",
         "profile_picture_url": f"https://t.me/i/userpic/320/{user.username}.jpg" if user.username else "https://via.placeholder.com/100"
     }), 200
-
 
 @app.route('/save-vibe', methods=['POST'])
 def save_vibe():
@@ -312,7 +179,6 @@ def save_vibe():
     db.session.commit()
     app.logger.info(f"Vibe saved for user {user.id}: {data}")
     return jsonify({"status": "saved", "vibe_data": user.vibe_data})
-
 
 @app.route('/me')
 def profile():
@@ -334,59 +200,9 @@ def profile():
         app.logger.error(f"Render error in /me: {str(e)}")
         return f"Ошибка рендеринга шаблона: {str(e)}", 500
 
-
-@app.route('/api/admin/events/<int:event_id>', methods=['GET', 'PUT'])
-def api_admin_event(event_id):
-    if not is_admin():
-        return jsonify({"error": "access denied"}), 403
-
-    event = Event.query.get(event_id)
-    if not event:
-        return jsonify({"error": "event not found"}), 404
-
-    if request.method == 'GET':
-        return jsonify({
-            "id": event.id,
-            "title": event.title,
-            "start_time": event.start_time.strftime("%Y-%m-%dT%H:%M"),
-            "main_place": event.main_place,
-            "zones": event.zones,
-            "vibe": event.vibe or "",
-            "description": event.description or ""
-        })
-
-    elif request.method == 'PUT':
-        data = request.get_json()
-        if not data:
-            return jsonify({"error": "no data"}), 400
-
-        try:
-            event.title = data.get('title', event.title)
-            event.start_time = datetime.datetime.fromisoformat(data['start_time'].replace('Z', '+00:00'))
-            event.main_place = data.get('main_place', event.main_place)
-            event.zones = data.get('zones', event.zones)
-            event.vibe = data.get('vibe', event.vibe)
-            event.description = data.get('description', event.description)
-
-            db.session.commit()
-            app.logger.info(f"Обновлена вечеринка id={event.id}: {event.title}")
-
-            return jsonify({"status": "updated", "id": event.id}), 200
-
-        except Exception as e:
-            db.session.rollback()
-            app.logger.error(f"Ошибка обновления события {event_id}: {e}")
-            return jsonify({"error": "server error"}), 500
-
-
-
-
-
-
 @app.route('/logout')
 def logout():
     return redirect('/')
-
 
 @app.route('/full-logout')
 def full_logout():
@@ -395,6 +211,39 @@ def full_logout():
     resp.set_cookie('session', '', expires=0, path='/', secure=True, httponly=True, samesite='None')
     return resp
 
+# ── Переключение языка ───────────────────────────────────────────
+@app.route('/set_language/<lang>')
+def set_language(lang):
+    next_param = request.args.get('next')
+    referrer = request.referrer or 'нет'
+    current_lang = session.get('lang', 'не установлен')
+
+    language_logger.info(
+        f"ЗАШЛИ В set_language | lang={lang} | next={next_param} | "
+        f"referrer={referrer} | текущий_язык_в_сессии={current_lang}"
+    )
+
+    if lang in ['ru', 'en', 'he']:
+        session['lang'] = lang
+        session.modified = True
+        language_logger.info(f"Язык изменён → session['lang'] = {lang}")
+    else:
+        language_logger.warning(f"Недопустимый язык: {lang}")
+
+    new_lang = session.get('lang', 'не установлен')
+    language_logger.debug(f"После обработки: session['lang'] = {new_lang}")
+
+    if next_param and next_param.startswith('/'):
+        language_logger.info(f"РЕДИРЕКТ по next → {next_param}")
+        return redirect(next_param)
+    
+    fallback = url_for('admin.admin_login')
+    language_logger.info(f"next отсутствует/некорректный → редирект на {fallback}")
+    return redirect(fallback)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5003, debug=True)
+
+
+# Инфа для запуска виртуального окружения, что бы незабыть
+# source /home/beasty197/projects/vibepatrol/.venv/bin/activate
