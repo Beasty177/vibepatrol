@@ -6,6 +6,7 @@ from models import Admin
 import os
 import logging
 from logging.handlers import RotatingFileHandler
+from functools import wraps
 
 admin_logger = logging.getLogger('admin')
 admin_logger.setLevel(logging.DEBUG)
@@ -19,6 +20,16 @@ admin_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(me
 admin_logger.addHandler(admin_handler)
 
 admin_logger.info("=== routes.py успешно загружен ===")
+
+# Декоратор защиты админки
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('is_admin'):
+            admin_logger.warning("Неавторизованный доступ → редирект на login")
+            return redirect(url_for('admin.admin_login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 @admin_bp.route('/login', methods=['GET', 'POST'])
 def admin_login():
@@ -57,23 +68,21 @@ def admin_login():
         error = "Неверный логин или пароль"
 
     admin_logger.debug("Рендерим шаблон 'login.html'")
-    return render_template('login.html', error=error)  # ← без 'admin/'
+    return render_template('login.html', error=error)
 
 @admin_bp.route('/')
+@admin_required
 def dashboard():
     admin_logger.info("Зашли на dashboard")
-    if not session.get('is_admin'):
-        admin_logger.warning("Неавторизованный доступ → редирект на login")
-        return redirect(url_for('admin.admin_login'))
-    admin_logger.debug("Админ авторизован, рендерим 'dashboard.html'")
-    return render_template('dashboard.html', title="Админ-панель VibePatrol")
+    admin_logger.debug(f"Админ авторизован, роль: {session.get('admin_role')}")
+
+    return render_template('dashboard.html', 
+                          title="Админ-панель VibePatrol")
 
 @admin_bp.route('/questionnaire')
+@admin_required
 def questionnaire_list():
     admin_logger.info("Зашли на /admin/questionnaire")
-    if not session.get('is_admin'):
-        admin_logger.warning("Неавторизованный доступ → редирект")
-        return redirect(url_for('admin.admin_login'))
     questions = []  # скоро Question.query.all()
     admin_logger.debug(f"Вопросов в списке: {len(questions)}")
     return render_template('questionnaire_list.html', questions=questions)
@@ -82,6 +91,7 @@ def questionnaire_list():
 def admin_logout():
     admin_logger.info("Админ вышел из системы")
     session.pop('is_admin', None)
+    session.pop('admin_role', None)
     session.modified = True
     flash('Вы вышли из админки', 'info')
     return redirect(url_for('admin.admin_login'))

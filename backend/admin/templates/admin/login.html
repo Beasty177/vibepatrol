@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ custom_gettext('Вход в панель администраторов') }}</title>
+    <title>{{ custom_gettext('Вход в панель администраторов', section='login') }}</title>
     
     <link rel="stylesheet" href="/static/css/admin/admin_login.css">
 </head>
@@ -14,12 +14,12 @@
         <!-- Подключаем блок смены языка -->
         {% include "partials/lang_switcher.html" %}
 
-        <h1>{{ custom_gettext('Вход в панель администраторов') }}</h1>
+        <h1>{{ custom_gettext('Вход в панель администраторов', section='login') }}</h1>
 
         <form method="POST" action="{{ url_for('admin.admin_login') }}">
             <div class="field">
                 <label for="username">{{ custom_gettext('Логин') }}</label>
-                <input type="text" id="username" name="username" placeholder="Admin" required autofocus>
+                <input type="text" id="username" name="username" placeholder="super" required autofocus>
             </div>
 
             <div class="field">
