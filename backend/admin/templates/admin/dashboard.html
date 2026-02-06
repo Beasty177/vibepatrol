@@ -1,12 +1,41 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="{{ session.lang or 'ru' }}" dir="{{ 'rtl' if session.lang == 'he' else 'ltr' }}">
 <head>
     <meta charset="UTF-8">
-    <title>{{ title }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ custom_gettext('Админ-панель VibePatrol', section='dashboard') }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin/admin_base.css') }}">
 </head>
-<body>
-    <h1>Админ-панель VibePatrol</h1>
-    <p>Если ты видишь это — blueprint и роут /admin/ работают 🔥</p>
-    <a href="/admin/questionnaire">Перейти к анкете →</a>
+<body class="{{ 'rtl' if session.lang == 'he' else 'ltr' }}">
+
+    <div class="admin-container">
+        <!-- Блок смены языка -->
+        {% include "partials/lang_switcher.html" %}
+
+        <header class="admin-header">
+            <h1>{{ custom_gettext('Админ-панель VibePatrol', section='dashboard') }}</h1>
+            <div class="user-info">
+                <span>{{ custom_gettext('Ваша роль', section='dashboard') }}: <strong>{{ session.admin_role or 'Неизвестно' }}</strong></span>
+                <a href="{{ url_for('logout') }}" class="logout-btn">{{ custom_gettext('Выйти', section='dashboard') }}</a>
+            </div>
+        </header>
+
+        <main class="admin-main">
+            {% if session.admin_role == 'super' %}
+                <div class="dashboard-card">
+                    <h3>{{ custom_gettext('Супер-админ панель', section='dashboard') }}</h3>
+                    <p>{{ custom_gettext('У вас полный доступ. Скоро здесь появится управление администраторами, ролями и настройками.', section='dashboard') }}</p>
+                </div>
+            {% else %}
+                <div class="dashboard-card">
+                    <h3>{{ custom_gettext('Панель управления', section='dashboard') }}</h3>
+                    <p>{{ custom_gettext('Ваша роль', section='dashboard') }}: <strong>{{ session.admin_role or custom_gettext('Обычный администратор', section='dashboard') }}</strong></p>
+                    <p>{{ custom_gettext('Панель успешно работает.', section='dashboard') }}</p>
+                    <p>{{ custom_gettext('Функционал для вашей роли будет добавлен позже.', section='dashboard') }}</p>
+                </div>
+            {% endif %}
+        </main>
+    </div>
+
 </body>
 </html>
