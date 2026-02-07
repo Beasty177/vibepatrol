@@ -10,12 +10,12 @@ function toggleAdminBlock(header) {
 
 function openAdminPopup(mode, id = '', username = '', role = '') {
     const popup = document.getElementById('adminPopup');
-    const title = document.getElementById('popupTitle');
+    const titleEl = document.getElementById('popupTitle');
     const form = document.getElementById('adminForm');
     const deleteBtn = document.getElementById('deleteAdminBtn');
     const deleteConfirmation = document.getElementById('deleteConfirmation');
 
-    if (!popup || !title || !form) {
+    if (!popup || !titleEl || !form) {
         console.error('Не найдены элементы попапа');
         return;
     }
@@ -38,15 +38,16 @@ function openAdminPopup(mode, id = '', username = '', role = '') {
     const usernameInput = document.getElementById('username');
     const roleSelect = document.getElementById('role');
 
+    // Устанавливаем заголовок из data-атрибутов (переводы из шаблона)
     if (mode === 'add') {
-        title.textContent = 'Добавить администратора';
+        titleEl.textContent = titleEl.dataset.add || 'Добавить администратора';
         if (actionInput) actionInput.value = 'add_admin';
         if (idInput) idInput.value = '';
         if (usernameInput) usernameInput.value = '';
         if (roleSelect) roleSelect.value = 'questionnaire';
     } 
     else if (mode === 'edit') {
-        title.textContent = 'Редактировать администратора';
+        titleEl.textContent = titleEl.dataset.edit || 'Редактировать администратора';
         if (actionInput) actionInput.value = 'edit_admin';
         if (idInput) idInput.value = id;
         if (usernameInput) usernameInput.value = username;
@@ -86,7 +87,9 @@ function initDeleteButton() {
         const deleteConfirmation = document.getElementById('deleteConfirmation');
         if (deleteConfirmation) deleteConfirmation.style.display = 'block';
 
-        document.getElementById('popupTitle').textContent = 'Удалить администратора?';
+        // Заголовок подтверждения тоже из data-атрибута
+        const titleEl = document.getElementById('popupTitle');
+        if (titleEl) titleEl.textContent = titleEl.dataset.delete || 'Удалить администратора?';
     });
 }
 
@@ -100,7 +103,8 @@ function cancelDelete() {
     const deleteBtn = document.getElementById('deleteAdminBtn');
     if (deleteBtn) deleteBtn.style.display = 'inline-block';
 
-    document.getElementById('popupTitle').textContent = 'Редактировать администратора';
+    const titleEl = document.getElementById('popupTitle');
+    if (titleEl) titleEl.textContent = titleEl.dataset.edit || 'Редактировать администратора';
 }
 
 function confirmDelete() {
@@ -141,10 +145,12 @@ function closeAdminPopup() {
     const deleteBtn = document.getElementById('deleteAdminBtn');
     if (deleteBtn) deleteBtn.style.display = 'none';
 
-    document.getElementById('popupTitle').textContent = 'Добавить администратора';
+    // Возвращаем дефолтный заголовок из data-add
+    const titleEl = document.getElementById('popupTitle');
+    if (titleEl) titleEl.textContent = titleEl.dataset.add || 'Добавить администратора';
 }
 
-// Инициализация
+// Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', function () {
     console.log("[DEBUG] Скрипт admin_management.js загружен");
 

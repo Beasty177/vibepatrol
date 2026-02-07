@@ -37,7 +37,13 @@
 <div id="adminPopup" class="modal">
     <div class="modal-content">
         <span class="close-btn" onclick="closeAdminPopup()">×</span>
-        <h2 id="popupTitle">{{ custom_gettext('Добавить администратора', 'dashboard') }}</h2>
+        
+        <!-- Дефолтный заголовок — будет перезаписан в JS -->
+        <h2 id="popupTitle" data-add="{{ custom_gettext('Добавить администратора', 'dashboard') }}"
+                             data-edit="{{ custom_gettext('Редактировать администратора', 'dashboard') }}"
+                             data-delete="{{ custom_gettext('Удалить администратора?', 'dashboard') }}">
+            {{ custom_gettext('Добавить администратора', 'dashboard') }}
+        </h2>
         
         <form method="POST" id="adminForm" action="{{ url_for('admin.dashboard') }}">
             <input type="hidden" name="action" id="action" value="">
@@ -49,27 +55,35 @@
             </div>
 
             <div class="form-group">
-                <label for="password">{{ custom_gettext('Пароль', 'dashboard') }} ({{ custom_gettext('оставьте пустым, если не меняете', 'dashboard') }})</label>
+                <label for="password">
+                    {{ custom_gettext('Пароль', 'dashboard') }}
+                    <small class="password-hint">
+                        ({{ custom_gettext('оставьте пустым, если не меняете', 'dashboard') }})
+                    </small>
+                </label>
                 <input type="password" id="password" name="password">
             </div>
 
             <div class="form-group">
                 <label for="role">{{ custom_gettext('Роль', 'dashboard') }}</label>
                 <select id="role" name="role">
-                    <option value="super">{{ custom_gettext('Super Admin', 'dashboard') }}</option>
-                    <option value="questionnaire">{{ custom_gettext('Questionnaire Admin', 'dashboard') }}</option>
-                    <option value="content">{{ custom_gettext('Content Admin', 'dashboard') }}</option>
+                    <option value="super">Super Admin</option>
+                    <option value="questionnaire">Questionnaire Admin</option>
+                    <option value="content">Content Admin</option>
                 </select>
             </div>
 
             <div class="form-buttons" style="display: flex; justify-content: space-between; margin-top: 20px;">
-                <button type="submit" class="btn save-btn">{{ custom_gettext('Сохранить', 'common') }}</button>
+                <button type="submit" class="btn save-btn">
+                    {{ custom_gettext('Сохранить', 'common') }}
+                </button>
                 
                 <button type="button" id="deleteAdminBtn" class="btn delete-btn" style="display: none;">
                     {{ custom_gettext('Удалить администратора', 'dashboard') }}
                 </button>
             </div>
 
+            <!-- Блок подтверждения удаления -->
             <div id="deleteConfirmation" style="display: none; margin-top: 15px; padding: 15px; background: #ffebee; border-radius: 8px;">
                 <p style="margin: 0 0 10px 0; color: #c62828;">
                     {{ custom_gettext('Вы уверены, что хотите удалить администратора', 'dashboard') }} 
