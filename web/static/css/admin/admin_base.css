@@ -1,5 +1,6 @@
-/* admin_base.css — общий стиль для всей админки */
+/* admin_base.css — ОБЩИЙ СТИЛЬ ДЛЯ ВСЕЙ АДМИНКИ */
 
+/* ==================== БАЗОВЫЕ СБРОСЫ ==================== */
 * {
     box-sizing: border-box;
 }
@@ -19,12 +20,14 @@ body.rtl {
     text-align: right;
 }
 
+/* ==================== КОНТЕЙНЕРЫ ==================== */
 .admin-container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 20px 30px;
 }
 
+/* ==================== ШАПКА ==================== */
 .admin-header {
     display: flex;
     justify-content: space-between;
@@ -39,10 +42,11 @@ body.rtl {
     font-size: 2em;
 }
 
-.admin-header .user-info {
+.user-info {
     display: flex;
     align-items: center;
     gap: 20px;
+    font-size: 1.1em;
 }
 
 .logout-btn {
@@ -58,51 +62,142 @@ body.rtl {
     background: #cc0000;
 }
 
-.dashboard-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 20px;
-}
-
-.dashboard-card {
-    background: rgba(255,255,255,0.1);
+/* ==================== АККОРДЕОН ==================== */
+.admin-management-block {
+    background: rgba(255,255,255,0.08);
     border-radius: 12px;
-    padding: 25px;
-    text-align: center;
-    transition: transform 0.2s;
+    margin-bottom: 25px;
+    overflow: hidden;
 }
 
-.dashboard-card:hover {
-    transform: translateY(-5px);
-}
-
-.dashboard-card h3 {
-    margin: 0 0 15px;
+.accordion-header {
+    padding: 18px 24px;
     font-size: 1.4em;
+    font-weight: bold;
+    background: rgba(0,0,0,0.3);
+    cursor: pointer;
+    transition: background 0.2s;
+    user-select: none;
 }
 
+.accordion-header:hover {
+    background: rgba(0,0,0,0.5);
+}
+
+.accordion-content {
+    display: none;
+    padding: 20px;
+}
+
+/* ==================== ТАБЛИЦА АДМИНОВ ==================== */
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.admin-table th,
+.admin-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255,255,255,0.15);
+}
+
+.admin-table th {
+    background: rgba(255,255,255,0.05);
+    font-weight: bold;
+}
+
+.admin-row {
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.admin-row:hover {
+    background: rgba(255,255,255,0.08);
+}
+
+/* ==================== КНОПКИ ==================== */
 .btn {
-    background: #4CAF50;
-    color: white;
-    padding: 12px 24px;
+    padding: 10px 20px;
     border: none;
     border-radius: 6px;
-    text-decoration: none;
+    cursor: pointer;
     font-size: 1em;
-    display: inline-block;
-    margin-top: 15px;
-    transition: background 0.3s;
+    font-weight: 500;
+    transition: all 0.2s;
 }
 
-.btn:hover {
+.btn.save-btn {
+    background: #4CAF50;
+    color: white;
+}
+
+.btn.save-btn:hover {
     background: #45a049;
 }
 
-.form-container {
-    background: rgba(255,255,255,0.1);
+.btn.delete-btn {
+    background: #e74c3c;
+    color: white;
+}
+
+.btn.delete-btn:hover {
+    background: #c0392b;
+}
+
+.btn.cancel-btn {
+    background: #7f8c8d;
+    color: white;
+}
+
+.btn.cancel-btn:hover {
+    background: #95a5a6;
+}
+
+.add-btn {
+    background: #2196F3;
+    color: white;
+    margin-bottom: 15px;
+}
+
+.add-btn:hover {
+    background: #1976D2;
+}
+
+/* ==================== ПОП-АП ==================== */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: rgba(30,30,50,0.95);
     padding: 30px;
     border-radius: 12px;
-    margin-top: 20px;
+    max-width: 450px;
+    width: 90%;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    color: white;
+}
+
+.close-btn {
+    color: white;
+    float: right;
+    font-size: 2em;
+    cursor: pointer;
+}
+
+.close-btn:hover {
+    color: #ff6b6b;
 }
 
 .form-group {
@@ -121,30 +216,46 @@ body.rtl {
     padding: 12px;
     border: 1px solid rgba(255,255,255,0.3);
     border-radius: 6px;
-    background: rgba(255,255,255,0.05);
-    color: white;
     font-size: 1em;
 }
 
-.form-group input:focus,
-.form-group select:focus {
-    outline: none;
-    border-color: #4CAF50;
-    box-shadow: 0 0 0 2px rgba(76,175,80,0.3);
+/* Тёмный и читаемый select для выбора роли */
+.form-group select#role {
+    background-color: #1e293b;          /* тёмно-серый/синий */
+    color: #e2e8f0;                     /* светлый текст */
+    border: 1px solid #475569;
 }
 
-.table {
-    width: 100%;
-    border-collapse: collapse;
+.form-group select#role:focus {
+    outline: none;
+    border-color: #620f89;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.3);
+}
+
+/* Опции в выпадающем списке тоже тёмные */
+.form-group select#role option {
+    background-color: #1e293b;
+    color: #e2e8f0;
+}
+
+/* Блок подтверждения удаления */
+#deleteConfirmation {
+    background: rgba(239, 68, 68, 0.15);   /* лёгкий красный фон */
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    border-radius: 8px;
+    padding: 16px;
     margin-top: 20px;
 }
 
-.table th, .table td {
-    padding: 12px;
-    text-align: left;
-    border-bottom: 1px solid rgba(255,255,255,0.2);
+#deleteConfirmation p {
+    margin: 0 0 12px 0;
+    color: #fca5a5;
+    font-weight: 500;
 }
 
-.table th {
-    background: rgba(255,255,255,0.1);
+/* Блок кнопок в попапе */
+.form-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 24px;
 }
