@@ -1,12 +1,15 @@
 # /home/beasty197/projects/vibepatrol/backend/admin/routes.py
 
-from flask import render_template, request, redirect, url_for, session, flash
+from flask import render_template, request, redirect, url_for, session, flash, g
 from . import admin_bp
 from models import Admin, db
 import os
 import logging
 from logging.handlers import RotatingFileHandler
 from functools import wraps
+
+# Правильный импорт — без ".." (чтобы не было ошибки relative import)
+from translations import custom_gettext
 
 admin_logger = logging.getLogger('admin')
 admin_logger.setLevel(logging.DEBUG)
@@ -43,17 +46,15 @@ def admin_login():
 
         admin_logger.info(f"Попытка входа | Username: {username}")
 
-        # Проверяем обычных админов из БД
         admin = Admin.query.filter_by(username=username).first()
         if admin and admin.check_password(password):
             session['is_admin'] = True
             session['admin_role'] = admin.role
             session.permanent = True
             admin_logger.info(f"Успешный вход админа | Роль: {admin.role}")
-            flash('Успешный вход!', 'success')
+            flash(custom_gettext('Успешный вход!', 'common'), 'success')
             return redirect(url_for('admin.dashboard'))
 
-        # Проверяем супер-админа из .env
         super_username = os.getenv('ADMIN_USERNAME', 'super')
         super_password = os.getenv('ADMIN_PASSWORD')
 
@@ -62,11 +63,11 @@ def admin_login():
             session['admin_role'] = 'super'
             session.permanent = True
             admin_logger.info("Успешный вход СУПЕР-админа")
-            flash('Успешный вход (супер-админ)!', 'success')
+            flash(custom_gettext('Успешный вход (супер-админ)!', 'dashboard'), 'success')
             return redirect(url_for('admin.dashboard'))
 
         admin_logger.warning(f"Неверный логин/пароль для {username}")
-        error = "Неверный логин или пароль"
+        error = custom_gettext('Неверный логин или пароль', 'common')
 
     return render_template('login.html', error=error)
 
@@ -86,9 +87,10 @@ def dashboard():
             role = request.form.get('role', 'questionnaire')
 
             if not username or not password:
-                flash('Логин и пароль обязательны!', 'error')
+                flash(custom_gettext('Логин и пароль обязательны!', 'dashboard'), 'error')
             elif Admin.query.filter_by(username=username).first():
-                flash(f'Админ с логином "{username}" уже существует', 'error')
+                msg = custom_gettext('Админ с логином "{username}" уже существует', 'dashboard')
+                flash(msg.format(username=username), 'error')
             else:
                 try:
                     new_admin = Admin(username=username, role=role)
@@ -96,11 +98,11 @@ def dashboard():
                     db.session.add(new_admin)
                     db.session.commit()
                     admin_logger.info(f"УСПЕШНО добавлен админ: {username} ({role})")
-                    flash(f'Админ "{username}" успешно добавлен!', 'success')
+                    flash(custom_gettext('Администратор успешно добавлен', 'dashboard'), 'success')
                 except Exception as e:
                     db.session.rollback()
                     admin_logger.error(f"Ошибка добавления админа {username}: {e}")
-                    flash('Ошибка сервера при добавлении админа', 'error')
+                    flash(custom_gettext('Ошибка при добавлении админа', 'dashboard'), 'error')
 
         elif action == 'edit_admin':
             admin_id = request.form.get('admin_id')
@@ -110,55 +112,57 @@ def dashboard():
 
             admin = Admin.query.get(admin_id)
             if not admin:
-                flash('Администратор не найден', 'error')
+                flash(custom_gettext('Администратор не найден', 'dashboard'), 'error')
             else:
                 try:
                     admin.username = username
                     admin.role = role
-                    if password:  # меняем только если ввели новый пароль
+                    if password:
                         admin.set_password(password)
                     
                     db.session.commit()
                     admin_logger.info(f"УСПЕШНО обновлён админ ID {admin_id} → {username} ({role})")
-                    flash(f'Админ "{username}" успешно обновлён!', 'success')
+                    flash(custom_gettext('Администратор успешно обновлён', 'dashboard'), 'success')
                 except Exception as e:
                     db.session.rollback()
                     admin_logger.error(f"Ошибка обновления админа {admin_id}: {e}")
-                    flash('Ошибка при обновлении админа', 'error')
+                    flash(custom_gettext('Ошибка при обновлении админа', 'dashboard'), 'error')
 
         elif action == 'delete_admin':
             admin_id = request.form.get('admin_id')
 
             if not admin_id:
                 admin_logger.warning("Попытка удаления без admin_id")
-                flash('ID администратора не передан', 'error')
+                flash(custom_gettext('ID администратора не передан', 'dashboard'), 'error')
             else:
                 admin = Admin.query.get(admin_id)
                 if not admin:
                     admin_logger.warning(f"Админ с ID {admin_id} не найден")
-                    flash('Администратор не найден', 'error')
+                    flash(custom_gettext('Администратор не найден', 'dashboard'), 'error')
                 else:
                     username = admin.username
                     try:
                         db.session.delete(admin)
                         db.session.commit()
                         admin_logger.info(f"Удалён админ ID {admin_id} ({username})")
-                        flash(f'Администратор "{username}" успешно удалён', 'success')
+                        flash(custom_gettext('Администратор успешно удалён', 'dashboard'), 'success')
                     except Exception as e:
                         db.session.rollback()
                         admin_logger.error(f"Ошибка при удалении админа ID {admin_id}: {str(e)}")
-                        flash('Ошибка при удалении администратора', 'error')
+                        flash(custom_gettext('Ошибка при удалении администратора', 'dashboard'), 'error')
 
-        # После любого POST-действия — редирект, чтобы не было повторной отправки формы
         return redirect(url_for('admin.dashboard'))
 
     # GET — показываем страницу
     admins = Admin.query.all()
     admin_logger.info(f"Отображаем {len(admins)} админов в таблице")
 
-    return render_template('dashboard.html',
-                          title="Админ-панель VibePatrol",
-                          admins=admins)
+    return render_template(
+        'dashboard.html',
+        title=custom_gettext('Админ-панель VibePatrol', 'dashboard'),
+        admins=admins,
+        custom_gettext=custom_gettext
+    )
 
 
 @admin_bp.route('/questionnaire')
@@ -175,7 +179,7 @@ def admin_logout():
     session.pop('is_admin', None)
     session.pop('admin_role', None)
     session.modified = True
-    flash('Вы успешно вышли из админки', 'info')
+    flash(custom_gettext('Вы успешно вышли из админки', 'dashboard'), 'info')
     return redirect(url_for('admin.admin_login'))
 
 

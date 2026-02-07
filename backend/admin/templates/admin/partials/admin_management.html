@@ -2,29 +2,29 @@
 
 <div class="admin-management-block">
     <div class="accordion-header" onclick="toggleAdminBlock(this)">
-        Управление администраторами
+        {{ custom_gettext('Управление администраторами', 'dashboard') }}
     </div>
 
     <div class="accordion-content" style="display: none;">
         <div class="admin-actions">
             <button class="btn add-btn" onclick="openAdminPopup('add')">
-                Добавить админа
+                {{ custom_gettext('Добавить админа', 'dashboard') }}
             </button>
         </div>
 
         <table class="admin-table">
             <thead>
                 <tr>
-                    <th>Логин</th>
-                    <th>Пароль</th>
-                    <th>Роль</th>
+                    <th>{{ custom_gettext('Логин', 'dashboard') }}</th>
+                    <th>{{ custom_gettext('Пароль', 'dashboard') }}</th>
+                    <th>{{ custom_gettext('Роль', 'dashboard') }}</th>
                 </tr>
             </thead>
             <tbody>
                 {% for admin in admins %}
                 <tr class="admin-row" onclick="openAdminPopup('edit', '{{ admin.id }}', '{{ admin.username | e }}', '{{ admin.role | e }}')">
                     <td>{{ admin.username }}</td>
-                    <td>******</td>
+                    <td>{{ custom_gettext('******', 'dashboard') }}</td>
                     <td>{{ admin.role }}</td>
                 </tr>
                 {% endfor %}
@@ -37,53 +37,50 @@
 <div id="adminPopup" class="modal">
     <div class="modal-content">
         <span class="close-btn" onclick="closeAdminPopup()">×</span>
-        <h2 id="popupTitle">Добавить администратора</h2>
+        <h2 id="popupTitle">{{ custom_gettext('Добавить администратора', 'dashboard') }}</h2>
         
         <form method="POST" id="adminForm" action="{{ url_for('admin.dashboard') }}">
             <input type="hidden" name="action" id="action" value="">
             <input type="hidden" name="admin_id" id="admin_id" value="">
 
             <div class="form-group">
-                <label for="username">Логин</label>
+                <label for="username">{{ custom_gettext('Логин', 'dashboard') }}</label>
                 <input type="text" id="username" name="username" required>
             </div>
 
             <div class="form-group">
-                <label for="password">Пароль (оставьте пустым, если не меняете)</label>
+                <label for="password">{{ custom_gettext('Пароль', 'dashboard') }} ({{ custom_gettext('оставьте пустым, если не меняете', 'dashboard') }})</label>
                 <input type="password" id="password" name="password">
             </div>
 
             <div class="form-group">
-                <label for="role">Роль</label>
+                <label for="role">{{ custom_gettext('Роль', 'dashboard') }}</label>
                 <select id="role" name="role">
-                    <option value="super">Super Admin</option>
-                    <option value="questionnaire">Questionnaire Admin</option>
-                    <option value="content">Content Admin</option>
+                    <option value="super">{{ custom_gettext('Super Admin', 'dashboard') }}</option>
+                    <option value="questionnaire">{{ custom_gettext('Questionnaire Admin', 'dashboard') }}</option>
+                    <option value="content">{{ custom_gettext('Content Admin', 'dashboard') }}</option>
                 </select>
             </div>
 
-            <!-- Блок кнопок -->
             <div class="form-buttons" style="display: flex; justify-content: space-between; margin-top: 20px;">
-                <button type="submit" class="btn save-btn">Сохранить</button>
+                <button type="submit" class="btn save-btn">{{ custom_gettext('Сохранить', 'common') }}</button>
                 
-                <!-- Кнопка удаления — показываем только в режиме edit -->
                 <button type="button" id="deleteAdminBtn" class="btn delete-btn" style="display: none;">
-                    Удалить администратора
+                    {{ custom_gettext('Удалить администратора', 'dashboard') }}
                 </button>
             </div>
 
-            <!-- Подтверждение удаления (скрыто по умолчанию) -->
             <div id="deleteConfirmation" style="display: none; margin-top: 15px; padding: 15px; background: #ffebee; border-radius: 8px;">
                 <p style="margin: 0 0 10px 0; color: #c62828;">
-                    Вы уверены, что хотите удалить администратора 
+                    {{ custom_gettext('Вы уверены, что хотите удалить администратора', 'dashboard') }} 
                     <strong id="confirmUsername"></strong>?
                 </p>
-                <div style="display: flex; gap: 10px; margin-top: 12px;">
+                <div style="display: flex; gap: 10px;">
                     <button type="button" class="btn cancel-btn" onclick="cancelDelete()">
-                        Отмена
+                        {{ custom_gettext('Отмена', 'common') }}
                     </button>
                     <button type="button" class="btn delete-btn" onclick="confirmDelete()">
-                        Да, удалить
+                        {{ custom_gettext('Да, удалить', 'common') }}
                     </button>
                 </div>
             </div>
