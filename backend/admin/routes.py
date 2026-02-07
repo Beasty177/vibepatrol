@@ -8,7 +8,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 from functools import wraps
 
-# Правильный импорт — без ".." (чтобы не было ошибки relative import)
+# Правильный импорт (без relative, т.к. запускаем из backend/)
 from translations import custom_gettext
 
 admin_logger = logging.getLogger('admin')
@@ -37,7 +37,11 @@ def admin_required(f):
 
 @admin_bp.route('/login', methods=['GET', 'POST'])
 def admin_login():
-    admin_logger.info(f"Зашли на /admin/login | IP: {request.remote_addr}")
+    # Устанавливаем язык прямо здесь, чтобы даже при первом заходе перевод работал
+    lang = request.args.get('lang') or session.get('lang', 'ru')
+    g.current_lang = lang
+
+    admin_logger.info(f"Зашли на /admin/login | IP: {request.remote_addr} | Lang: {lang}")
     error = None
 
     if request.method == 'POST':
@@ -69,7 +73,11 @@ def admin_login():
         admin_logger.warning(f"Неверный логин/пароль для {username}")
         error = custom_gettext('Неверный логин или пароль', 'common')
 
-    return render_template('login.html', error=error)
+    return render_template(
+        'login.html',
+        error=error,
+        custom_gettext=custom_gettext   # ← обязательно передаём в шаблон логина!
+    )
 
 
 @admin_bp.route('/', methods=['GET', 'POST'])
@@ -119,7 +127,7 @@ def dashboard():
                     admin.role = role
                     if password:
                         admin.set_password(password)
-                    
+
                     db.session.commit()
                     admin_logger.info(f"УСПЕШНО обновлён админ ID {admin_id} → {username} ({role})")
                     flash(custom_gettext('Администратор успешно обновлён', 'dashboard'), 'success')
