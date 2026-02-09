@@ -8,7 +8,7 @@
     <!-- Стили админки -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/admin/admin_base.css') }}">
     
-    <!-- JS для аккордеона и поп-апа — подключаем в head, чтобы всё работало сразу -->
+    <!-- JS для аккордеона, попапов и т.д. -->
     <script src="{{ url_for('static', filename='js/admin/admin_management.js') }}"></script>
 </head>
 <body class="{{ 'rtl' if session.lang == 'he' else 'ltr' }}">
@@ -19,27 +19,43 @@
 
         <header class="admin-header">
             <h1>{{ custom_gettext('Админ-панель VibePatrol', section='dashboard') }}</h1>
+            
             <div class="user-info">
-                <span>{{ custom_gettext('Ваша роль', section='dashboard') }}: <strong>{{ session.admin_role or 'Неизвестно' }}</strong></span>
-                <a href="{{ url_for('logout') }}" class="logout-btn">{{ custom_gettext('Выйти', section='dashboard') }}</a>
+                <!-- Кликабельный логин админа (открывает попап профиля) -->
+                <span class="admin-username" onclick="openProfilePopup()" style="cursor: pointer; font-weight: bold; margin-right: 16px;">
+                    {{ session.admin_username or 'admin' }}
+                </span>
+                
+                <span>{{ custom_gettext('Ваша роль', section='dashboard') }}: 
+                    <strong>{{ session.admin_role or custom_gettext('Неизвестно', 'dashboard') }}</strong>
+                </span>
+                
+                <a href="{{ url_for('admin.admin_logout') }}" class="logout-btn">
+                    {{ custom_gettext('Выйти', section='dashboard') }}
+                </a>
             </div>
         </header>
 
         <main class="admin-main">
             {% if session.admin_role == 'super' %}
-                <!-- Блок управления админами -->
+                <!-- Блок управления админами (только для super) -->
                 {% include "partials/admin_management.html" %}
             {% endif %}
 
             <!-- Заглушка для остальных ролей -->
             <div class="dashboard-card">
                 <h3>{{ custom_gettext('Панель управления', section='dashboard') }}</h3>
-                <p>{{ custom_gettext('Ваша роль', section='dashboard') }}: <strong>{{ session.admin_role or custom_gettext('Обычный администратор', section='dashboard') }}</strong></p>
+                <p>{{ custom_gettext('Ваша роль', section='dashboard') }}: 
+                    <strong>{{ session.admin_role or custom_gettext('Обычный администратор', 'dashboard') }}</strong>
+                </p>
                 <p>{{ custom_gettext('Панель успешно работает.', section='dashboard') }}</p>
                 <p>{{ custom_gettext('Функционал для вашей роли будет добавлен позже.', section='dashboard') }}</p>
             </div>
         </main>
     </div>
+
+    <!-- Попап редактирования профиля -->
+    {% include "partials/profile_popup.html" %}
 
 </body>
 </html>

@@ -55,21 +55,23 @@
             </div>
 
             <div class="form-group">
-                <label for="password">
-                    {{ custom_gettext('Пароль', 'dashboard') }}
-                    <small class="password-hint">
-                        ({{ custom_gettext('оставьте пустым, если не меняете', 'dashboard') }})
-                    </small>
-                </label>
+                <label for="password">{{ custom_gettext('Пароль', 'dashboard') }}</label>
                 <input type="password" id="password" name="password">
+                <!-- Подсказка только для редактирования — управляется через JS -->
+                <small id="passwordHint" class="password-hint" style="display: none;">
+                    ({{ custom_gettext('оставьте пустым, если не меняете', 'dashboard') }})
+                </small>
             </div>
 
             <div class="form-group">
                 <label for="role">{{ custom_gettext('Роль', 'dashboard') }}</label>
                 <select id="role" name="role">
                     <option value="super">Super Admin</option>
+                    <option value="full">Full Admin</option>
+                    <option value="location">Location Admin</option>
                     <option value="questionnaire">Questionnaire Admin</option>
                     <option value="content">Content Admin</option>
+                    <option value="ivent">Ivent Admin</option>
                 </select>
             </div>
 

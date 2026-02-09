@@ -1,5 +1,8 @@
 // web/static/js/admin/admin_management.js
 
+// ────────────────────────────────────────────────
+// Аккордеон (раскрытие/скрытие блоков)
+// ────────────────────────────────────────────────
 function toggleAdminBlock(header) {
     const content = header.nextElementSibling;
     const isOpen = content.style.display !== 'block';
@@ -8,12 +11,16 @@ function toggleAdminBlock(header) {
     header.classList.toggle('active', isOpen);
 }
 
+// ────────────────────────────────────────────────
+// Попап редактирования/добавления админа
+// ────────────────────────────────────────────────
 function openAdminPopup(mode, id = '', username = '', role = '') {
     const popup = document.getElementById('adminPopup');
     const titleEl = document.getElementById('popupTitle');
     const form = document.getElementById('adminForm');
     const deleteBtn = document.getElementById('deleteAdminBtn');
     const deleteConfirmation = document.getElementById('deleteConfirmation');
+    const passwordHint = document.getElementById('passwordHint');  // подсказка у пароля
 
     if (!popup || !titleEl || !form) {
         console.error('Не найдены элементы попапа');
@@ -37,6 +44,12 @@ function openAdminPopup(mode, id = '', username = '', role = '') {
     const idInput = document.getElementById('admin_id');
     const usernameInput = document.getElementById('username');
     const roleSelect = document.getElementById('role');
+
+    // Управляем видимостью подсказки к полю пароля
+    if (passwordHint) {
+        // Показываем только в режиме редактирования
+        passwordHint.style.display = (mode === 'edit') ? 'inline' : 'none';
+    }
 
     // Устанавливаем заголовок из data-атрибутов (переводы из шаблона)
     if (mode === 'add') {
@@ -67,6 +80,9 @@ function openAdminPopup(mode, id = '', username = '', role = '') {
     popup.style.display = 'flex';
 }
 
+// ────────────────────────────────────────────────
+// Инициализация кнопки удаления в попапе
+// ────────────────────────────────────────────────
 function initDeleteButton() {
     const deleteBtn = document.getElementById('deleteAdminBtn');
     if (!deleteBtn) return;
@@ -93,6 +109,9 @@ function initDeleteButton() {
     });
 }
 
+// ────────────────────────────────────────────────
+// Отмена удаления — возвращаем форму в режим редактирования
+// ────────────────────────────────────────────────
 function cancelDelete() {
     const deleteConfirmation = document.getElementById('deleteConfirmation');
     if (deleteConfirmation) deleteConfirmation.style.display = 'none';
@@ -107,6 +126,9 @@ function cancelDelete() {
     if (titleEl) titleEl.textContent = titleEl.dataset.edit || 'Редактировать администратора';
 }
 
+// ────────────────────────────────────────────────
+// Подтверждение удаления
+// ────────────────────────────────────────────────
 function confirmDelete() {
     console.log("[DEBUG] confirmDelete() запущен");
 
@@ -132,6 +154,9 @@ function confirmDelete() {
     }
 }
 
+// ────────────────────────────────────────────────
+// Закрытие основного попапа админов
+// ────────────────────────────────────────────────
 function closeAdminPopup() {
     const popup = document.getElementById('adminPopup');
     if (popup) popup.style.display = 'none';
@@ -145,12 +170,37 @@ function closeAdminPopup() {
     const deleteBtn = document.getElementById('deleteAdminBtn');
     if (deleteBtn) deleteBtn.style.display = 'none';
 
-    // Возвращаем дефолтный заголовок из data-add
     const titleEl = document.getElementById('popupTitle');
     if (titleEl) titleEl.textContent = titleEl.dataset.add || 'Добавить администратора';
 }
 
+// ────────────────────────────────────────────────
+// Попап профиля текущего админа (смена логина/пароля)
+// ────────────────────────────────────────────────
+function openProfilePopup() {
+    const popup = document.getElementById('profilePopup');
+    if (popup) {
+        popup.style.display = 'flex';
+    } else {
+        console.error('[PROFILE] Попап #profilePopup не найден');
+    }
+}
+
+function closeProfilePopup() {
+    const popup = document.getElementById('profilePopup');
+    if (popup) {
+        popup.style.display = 'none';
+    }
+    
+    const form = document.getElementById('profileForm');
+    if (form) {
+        form.reset();
+    }
+}
+
+// ────────────────────────────────────────────────
 // Инициализация при загрузке страницы
+// ────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function () {
     console.log("[DEBUG] Скрипт admin_management.js загружен");
 

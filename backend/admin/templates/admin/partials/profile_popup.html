@@ -1,0 +1,46 @@
+<!-- backend/admin/templates/admin/partials/profile_popup.html -->
+
+<div id="profilePopup" class="modal">
+    <div class="modal-content" style="max-width: 420px;">
+        <span class="close-btn" onclick="closeProfilePopup()">×</span>
+        
+        <h2>{{ custom_gettext('Профиль администратора', 'dashboard') }}</h2>
+        
+        <form method="POST" id="profileForm" action="{{ url_for('admin.dashboard') }}">
+            <input type="hidden" name="action" value="update_profile">
+
+            <div class="form-group">
+                <label for="new_username">{{ custom_gettext('Новый логин', 'dashboard') }}</label>
+                <input type="text" id="new_username" name="new_username" 
+                       value="{{ session.admin_username or '' }}" required>
+            </div>
+
+            <div class="form-group">
+                <label for="old_password">{{ custom_gettext('Текущий пароль', 'dashboard') }}</label>
+                <input type="password" id="old_password" name="old_password" required>
+            </div>
+
+            <div class="form-group">
+                <label for="new_password">{{ custom_gettext('Новый пароль', 'dashboard') }}</label>
+                <input type="password" id="new_password" name="new_password">
+                <small class="password-hint">
+                    ({{ custom_gettext('оставьте пустым, если не меняете', 'dashboard') }})
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label for="new_password_confirm">{{ custom_gettext('Повторите новый пароль', 'dashboard') }}</label>
+                <input type="password" id="new_password_confirm" name="new_password_confirm">
+            </div>
+
+            <div class="form-buttons" style="display: flex; justify-content: space-between; margin-top: 24px;">
+                <button type="submit" class="btn save-btn">
+                    {{ custom_gettext('Сохранить', 'common') }}
+                </button>
+                <button type="button" class="btn cancel-btn" onclick="closeProfilePopup()">
+                    {{ custom_gettext('Отмена', 'common') }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

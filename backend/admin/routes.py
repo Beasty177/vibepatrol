@@ -8,9 +8,10 @@ import logging
 from logging.handlers import RotatingFileHandler
 from functools import wraps
 
-# Правильный импорт (без relative, т.к. запускаем из backend/)
+# Импорт функции перевода
 from translations import custom_gettext
 
+# Настройка логгера для админки
 admin_logger = logging.getLogger('admin')
 admin_logger.setLevel(logging.DEBUG)
 
@@ -24,7 +25,7 @@ admin_logger.addHandler(admin_handler)
 
 admin_logger.info("=== admin/routes.py успешно загружен ===")
 
-# Декоратор защиты админки
+# Декоратор для защиты роутов админки
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -35,9 +36,12 @@ def admin_required(f):
     return decorated_function
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# LOGIN ROUTE
+# ──────────────────────────────────────────────────────────────────────────────
 @admin_bp.route('/login', methods=['GET', 'POST'])
 def admin_login():
-    # Устанавливаем язык прямо здесь, чтобы даже при первом заходе перевод работал
+    # Устанавливаем язык для перевода прямо в роуте (чтобы работал с первого захода)
     lang = request.args.get('lang') or session.get('lang', 'ru')
     g.current_lang = lang
 
@@ -50,21 +54,25 @@ def admin_login():
 
         admin_logger.info(f"Попытка входа | Username: {username}")
 
+        # Проверка обычного админа из базы
         admin = Admin.query.filter_by(username=username).first()
         if admin and admin.check_password(password):
             session['is_admin'] = True
             session['admin_role'] = admin.role
+            session['admin_username'] = admin.username          # сохраняем логин в сессию
             session.permanent = True
             admin_logger.info(f"Успешный вход админа | Роль: {admin.role}")
             flash(custom_gettext('Успешный вход!', 'common'), 'success')
             return redirect(url_for('admin.dashboard'))
 
+        # Проверка супер-админа из .env
         super_username = os.getenv('ADMIN_USERNAME', 'super')
         super_password = os.getenv('ADMIN_PASSWORD')
 
         if username == super_username and password == super_password:
             session['is_admin'] = True
             session['admin_role'] = 'super'
+            session['admin_username'] = super_username          # сохраняем логин супер-админа
             session.permanent = True
             admin_logger.info("Успешный вход СУПЕР-админа")
             flash(custom_gettext('Успешный вход (супер-админ)!', 'dashboard'), 'success')
@@ -76,10 +84,13 @@ def admin_login():
     return render_template(
         'login.html',
         error=error,
-        custom_gettext=custom_gettext   # ← обязательно передаём в шаблон логина!
+        custom_gettext=custom_gettext
     )
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# DASHBOARD (главная админ-панель)
+# ──────────────────────────────────────────────────────────────────────────────
 @admin_bp.route('/', methods=['GET', 'POST'])
 @admin_required
 def dashboard():
@@ -89,6 +100,7 @@ def dashboard():
         action = request.form.get('action')
         admin_logger.info(f"POST действие: {action}")
 
+        # Добавление нового админа
         if action == 'add_admin':
             username = request.form.get('username', '').strip()
             password = request.form.get('password', '').strip()
@@ -112,6 +124,7 @@ def dashboard():
                     admin_logger.error(f"Ошибка добавления админа {username}: {e}")
                     flash(custom_gettext('Ошибка при добавлении админа', 'dashboard'), 'error')
 
+        # Редактирование существующего админа
         elif action == 'edit_admin':
             admin_id = request.form.get('admin_id')
             username = request.form.get('username', '').strip()
@@ -127,7 +140,7 @@ def dashboard():
                     admin.role = role
                     if password:
                         admin.set_password(password)
-
+                    
                     db.session.commit()
                     admin_logger.info(f"УСПЕШНО обновлён админ ID {admin_id} → {username} ({role})")
                     flash(custom_gettext('Администратор успешно обновлён', 'dashboard'), 'success')
@@ -136,6 +149,7 @@ def dashboard():
                     admin_logger.error(f"Ошибка обновления админа {admin_id}: {e}")
                     flash(custom_gettext('Ошибка при обновлении админа', 'dashboard'), 'error')
 
+        # Удаление админа
         elif action == 'delete_admin':
             admin_id = request.form.get('admin_id')
 
@@ -159,9 +173,60 @@ def dashboard():
                         admin_logger.error(f"Ошибка при удалении админа ID {admin_id}: {str(e)}")
                         flash(custom_gettext('Ошибка при удалении администратора', 'dashboard'), 'error')
 
+        # Смена логина и/или пароля текущего админа (из попапа профиля)
+        elif action == 'update_profile':
+            current_username = session.get('admin_username')
+            admin_logger.info(f"[PROFILE] Попытка обновления профиля текущего юзера: {current_username}")
+
+            admin = None
+            if current_username:
+                admin = Admin.query.filter_by(username=current_username).first()
+
+            if not admin:
+                admin_logger.warning(f"[PROFILE] Админ не найден по сессии: {current_username}")
+                flash(custom_gettext('Сессия недействительна, войдите заново', 'dashboard'), 'error')
+            else:
+                new_username = request.form.get('new_username', '').strip()
+                old_password = request.form.get('old_password')
+                new_password = request.form.get('new_password')
+                new_password_confirm = request.form.get('new_password_confirm')
+
+                # Проверка текущего пароля
+                if not admin.check_password(old_password):
+                    flash(custom_gettext('Текущий пароль неверный', 'dashboard'), 'error')
+                # Проверка совпадения новых паролей
+                elif new_password and new_password != new_password_confirm:
+                    flash(custom_gettext('Новые пароли не совпадают', 'dashboard'), 'error')
+                # Проверка уникальности нового логина
+                elif new_username and new_username != admin.username:
+                    if Admin.query.filter_by(username=new_username).first():
+                        flash(custom_gettext('Этот логин уже занят', 'dashboard'), 'error')
+                    else:
+                        old_username = admin.username
+                        admin.username = new_username
+                        session['admin_username'] = new_username  # обновляем сессию
+                        admin_logger.info(f"[PROFILE] Логин изменён с {old_username} → {new_username}")
+                # Если логин не меняется — всё равно идём дальше (для смены пароля)
+
+                # Смена пароля, если указан
+                if new_password:
+                    admin.set_password(new_password)
+                    admin_logger.info(f"[PROFILE] Пароль изменён для {admin.username}")
+
+                # Финальный коммит
+                try:
+                    db.session.commit()
+                    admin_logger.info(f"[PROFILE] Профиль успешно обновлён для {admin.username}")
+                    flash(custom_gettext('Профиль успешно обновлён', 'dashboard'), 'success')
+                except Exception as e:
+                    db.session.rollback()
+                    admin_logger.error(f"[PROFILE] Ошибка обновления профиля {current_username}: {str(e)}")
+                    flash(custom_gettext('Ошибка при обновлении профиля', 'dashboard'), 'error')
+
+        # После любого POST — редирект, чтобы избежать повторной отправки формы
         return redirect(url_for('admin.dashboard'))
 
-    # GET — показываем страницу
+    # GET — отображаем главную страницу
     admins = Admin.query.all()
     admin_logger.info(f"Отображаем {len(admins)} админов в таблице")
 
@@ -172,6 +237,10 @@ def dashboard():
         custom_gettext=custom_gettext
     )
 
+
+# ──────────────────────────────────────────────────────────────────────────────
+# ДРУГИЕ РОУТЫ
+# ──────────────────────────────────────────────────────────────────────────────
 
 @admin_bp.route('/questionnaire')
 @admin_required
@@ -186,6 +255,7 @@ def admin_logout():
     admin_logger.info(f"Админ {session.get('admin_role')} вышел из системы")
     session.pop('is_admin', None)
     session.pop('admin_role', None)
+    session.pop('admin_username', None)  # чистим логин из сессии
     session.modified = True
     flash(custom_gettext('Вы успешно вышли из админки', 'dashboard'), 'info')
     return redirect(url_for('admin.admin_login'))
