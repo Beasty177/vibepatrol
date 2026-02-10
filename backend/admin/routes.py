@@ -7,7 +7,6 @@ import os
 import logging
 from logging.handlers import RotatingFileHandler
 from functools import wraps
-from datetime import datetime
 
 # Импорт функции перевода
 from translations import custom_gettext
@@ -253,7 +252,7 @@ def dashboard():
             options_raw = request.form.get('options', '').strip()
             options_list = [line.strip() for line in options_raw.split('\n') if line.strip()]
 
-            # Отладка — всё, что пришло в форму
+            # Отладка — что приходит в форму
             print("[DEBUG] ADD_QUESTION — ПОЛНЫЕ ДАННЫЕ ФОРМЫ:", dict(request.form))
             admin_logger.info(f"[DEBUG] ADD_QUESTION — ПОЛНЫЕ ДАННЫЕ ФОРМЫ: {dict(request.form)}")
 
@@ -371,6 +370,41 @@ def dashboard():
                 admin_logger.error(f"[QUESTION] Ошибка обновления вопроса ID {qid}: {str(e)}")
                 flash(custom_gettext('Ошибка при обновлении вопроса', 'questionnaire'), 'error')
 
+        # ────────────────────────────────────────────────
+        # УДАЛЕНИЕ ВОПРОСА ИЗ АНКЕТЫ
+        # ────────────────────────────────────────────────
+        elif action == 'delete_question':
+            qid = request.form.get('question_id')
+
+            print("[DEBUG] DELETE_QUESTION — ПОПЫТКА УДАЛЕНИЯ ID:", qid)
+            admin_logger.info(f"[DEBUG] DELETE_QUESTION — ПОПЫТКА УДАЛЕНИЯ ID: {qid}")
+
+            if not qid:
+                flash(custom_gettext('ID вопроса не передан', 'questionnaire'), 'error')
+            else:
+                question = Question.query.get(qid)
+                if not question:
+                    flash(custom_gettext('Вопрос не найден', 'questionnaire'), 'error')
+                else:
+                    try:
+                        db.session.delete(question)
+                        db.session.commit()
+
+                        # Нормализуем номера после удаления (убираем пробелы)
+                        questions = Question.query.order_by(Question.order).all()
+                        for i, q in enumerate(questions, 1):
+                            q.order = i
+                        db.session.commit()
+
+                        print("[DEBUG] DELETE_QUESTION — УСПЕШНО удалён вопрос ID:", qid)
+                        admin_logger.info(f"[QUESTION] Удалён вопрос ID {qid}: {question.text_ru}")
+                        flash(custom_gettext('Вопрос успешно удалён', 'questionnaire'), 'success')
+                    except Exception as e:
+                        db.session.rollback()
+                        print("[DEBUG] DELETE_QUESTION — ОШИБКА:", str(e))
+                        admin_logger.error(f"[QUESTION] Ошибка удаления вопроса ID {qid}: {str(e)}")
+                        flash(custom_gettext('Ошибка при удалении вопроса', 'questionnaire'), 'error')
+
         # После любого POST — редирект
         return redirect(url_for('admin.dashboard'))
 
@@ -382,7 +416,7 @@ def dashboard():
     max_order = db.session.query(db.func.max(Question.order)).scalar() or 0
     max_order_for_new = max_order + 1
 
-    # Отладка в терминал — чтобы видеть, что реально считается
+    # Отладка в терминал — чтобы видеть реальные значения
     print("[DEBUG] === GET DASHBOARD ===")
     print("[DEBUG] Количество вопросов в базе:", len(questions))
     print("[DEBUG] Максимальный order в базе:", max_order)

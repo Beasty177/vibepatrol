@@ -242,7 +242,7 @@ function getMaxOrder() {
     }
 
     const value = parseInt(maxOrderInput.value);
-    console.log("[DEBUG] MAX ORDER ИЗ HIDDEN INPUT:", value);
+    console.log("[DEBUG] MAX ORDER ИЗ ШАБЛОНА:", value);
     return value || 20;
 }
 
@@ -266,32 +266,53 @@ function changeOrder(delta) {
 // УДАЛЕНИЕ ВОПРОСА
 // ────────────────────────────────────────────────
 function deleteQuestion(questionId, questionText) {
-    const confirmation = document.getElementById('deleteQuestionConfirmation');
+    console.log("[DEBUG] Запускаем подтверждение удаления ID:", questionId, "Текст:", questionText);
+    
+    const overlay = document.getElementById('deleteQuestionOverlay');
     const confirmText = document.getElementById('confirmQuestionText');
     
-    if (confirmation && confirmText) {
+    if (overlay && confirmText) {
         confirmText.textContent = questionText;
-        confirmation.style.display = 'block';
-        document.getElementById('deleteQuestionBtn').style.display = 'none';
+        overlay.style.display = 'flex';
+        document.getElementById('question_id').dataset.deleteId = questionId;
+        console.log("[DEBUG] Оверлей подтверждения показан");
+    } else {
+        console.error("[ERROR] Не найден overlay или confirmQuestionText");
     }
-
-    document.getElementById('question_id').dataset.deleteId = questionId;
 }
 
 function cancelDeleteQuestion() {
-    document.getElementById('deleteQuestionConfirmation').style.display = 'none';
-    document.getElementById('deleteQuestionBtn').style.display = 'inline-block';
+    const overlay = document.getElementById('deleteQuestionOverlay');
+    if (overlay) {
+        overlay.style.display = 'none';
+        console.log("[DEBUG] Удаление отменено");
+    }
 }
 
 function confirmDeleteQuestion() {
     const questionId = document.getElementById('question_id').dataset.deleteId;
-    if (!questionId) return;
+    if (!questionId) {
+        console.error("[ERROR] question_id не найден");
+        return;
+    }
+
+    console.log("[DEBUG] Подтверждено удаление → ID:", questionId);
 
     const actionInput = document.getElementById('question_action');
-    actionInput.value = 'delete_question';
+    if (actionInput) {
+        actionInput.value = 'delete_question';
+        console.log("[DEBUG] action установлен на 'delete_question'");
+    } else {
+        console.error("[ERROR] question_action не найден");
+    }
 
     const form = document.getElementById('questionForm');
-    if (form) form.submit();
+    if (form) {
+        console.log("[DEBUG] Отправляем форму на удаление");
+        form.submit();
+    } else {
+        console.error("[ERROR] Форма questionForm не найдена");
+    }
 }
 
 // ────────────────────────────────────────────────

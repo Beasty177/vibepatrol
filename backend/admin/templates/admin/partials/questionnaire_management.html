@@ -136,8 +136,7 @@
             <!-- Варианты ответа (каждый с новой строки) -->
             <div class="form-group" id="optionsGroup" style="display: none;">
                 <label>{{ custom_gettext('Варианты ответа (каждый с новой строки)', 'questionnaire') }}</label>
-                <textarea id="question_options" name="options" rows="6" placeholder="
-Пиво
+                <textarea id="question_options" name="options" rows="6" placeholder="Пиво
 Вино с колой
 Коктейль &quot;Секс на пляже&quot;
 Чай с ромашкой
@@ -162,23 +161,25 @@
                     {{ custom_gettext('Удалить вопрос', 'questionnaire') }}
                 </button>
             </div>
-
-            <!-- Блок подтверждения удаления (появляется над кнопками при нажатии "Удалить") -->
-            <div id="deleteQuestionConfirmation" style="display: none; margin: 20px 0; padding: 15px; background: #ffebee; border-radius: 8px;">
-                <p style="margin: 0 0 12px 0; color: #c62828;">
-                    {{ custom_gettext('Вы уверены, что хотите удалить вопрос', 'questionnaire') }} 
-                    <strong id="confirmQuestionText"></strong>?
-                </p>
-                <div style="display: flex; gap: 10px;">
-                    <button type="button" class="btn cancel-btn" onclick="cancelDeleteQuestion()">
-                        {{ custom_gettext('Отмена', 'common') }}
-                    </button>
-                    <button type="button" class="btn delete-btn" onclick="confirmDeleteQuestion()">
-                        {{ custom_gettext('Да, удалить', 'common') }}
-                    </button>
-                </div>
-            </div>
         </form>
     </div>
 </div>
 
+<!-- ПОЛНОЭКРАННЫЙ OVERLAY ПОДТВЕРЖДЕНИЯ УДАЛЕНИЯ — ПО ЦЕНТРУ ЭКРАНА -->
+<div id="deleteQuestionOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; align-items: center; justify-content: center;">
+    <div style="background: rgba(30,30,50,0.98); padding: 40px; border-radius: 16px; max-width: 500px; width: 90%; box-shadow: 0 15px 50px rgba(0,0,0,0.7); text-align: center; color: white;">
+        <h3 style="margin: 0 0 25px 0; font-size: 1.6em;">{{ custom_gettext('Удалить вопрос?', 'questionnaire') }}</h3>
+        <p style="margin: 0 0 35px 0; font-size: 1.15em;">
+            {{ custom_gettext('Вы уверены, что хотите удалить вопрос', 'questionnaire') }}<br>
+            <strong id="confirmQuestionText" style="color: #ff6b6b;"></strong>?
+        </p>
+        <div style="display: flex; justify-content: center; gap: 30px;">
+            <button type="button" class="btn cancel-btn" onclick="cancelDeleteQuestion()" style="padding: 14px 40px; font-size: 1.1em;">
+                {{ custom_gettext('Отмена', 'common') }}
+            </button>
+            <button type="button" class="btn delete-btn" onclick="confirmDeleteQuestion()" style="padding: 14px 40px; font-size: 1.1em;">
+                {{ custom_gettext('Да, удалить', 'common') }}
+            </button>
+        </div>
+    </div>
+</div>
