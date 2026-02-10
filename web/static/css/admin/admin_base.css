@@ -1,13 +1,13 @@
 /* admin_base.css — ОБЩИЙ СТИЛЬ ДЛЯ ВСЕЙ АДМИНКИ */
 
-/* ==================== БАЗОВЫЕ СБРОСЫ ==================== */
+/* ==================== 1. БАЗОВЫЕ СБРОСЫ И ТЕЛО СТРАНИЦЫ ==================== */
 * {
     box-sizing: border-box;
 }
 
 body {
     font-family: Arial, sans-serif;
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #667eea, #764ba2); /* основной градиент фона всей страницы */
     color: white;
     margin: 0;
     min-height: 100vh;
@@ -20,14 +20,14 @@ body.rtl {
     text-align: right;
 }
 
-/* ==================== КОНТЕЙНЕРЫ ==================== */
+/* ==================== 2. ОБЩИЙ КОНТЕЙНЕР ==================== */
 .admin-container {
-    max-width: 1200px;
+    max-width: 1400px;              /* увеличил максимальную ширину контейнера для больших экранов */
     margin: 0 auto;
     padding: 20px 30px;
 }
 
-/* ==================== ШАПКА ==================== */
+/* ==================== 3. ШАПКА (заголовок + информация о пользователе) ==================== */
 .admin-header {
     display: flex;
     justify-content: space-between;
@@ -49,6 +49,17 @@ body.rtl {
     font-size: 1.1em;
 }
 
+.admin-username {
+    cursor: pointer;
+    font-weight: bold;
+    color: #93c5fd; /* светло-синий для выделения */
+}
+
+.admin-username:hover {
+    text-decoration: underline;
+    color: #60a5fa;
+}
+
 .logout-btn {
     background: #ff4444;
     color: white;
@@ -62,19 +73,21 @@ body.rtl {
     background: #cc0000;
 }
 
-/* ==================== АККОРДЕОН ==================== */
+/* ==================== 4. АККОРДЕОН (блоки с заголовком и содержимым) ==================== */
+/* Общий контейнер для блоков: админы, анкета, события и т.д. */
 .admin-management-block {
-    background: rgba(255,255,255,0.08);
-    border-radius: 12px;
+    background: rgba(255,255,255,0.08);     /* лёгкий фон блока */
+    border-radius: 12px;                    /* закругление углов всего блока */
     margin-bottom: 25px;
-    overflow: hidden;
+    overflow: hidden;                       /* чтобы таблица внутри не вылезала за углы */
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3); /* тень вокруг блока */
 }
 
 .accordion-header {
     padding: 18px 24px;
     font-size: 1.4em;
     font-weight: bold;
-    background: rgba(0,0,0,0.3);
+    background: rgba(0,0,0,0.3);            /* тёмный фон заголовка */
     cursor: pointer;
     transition: background 0.2s;
     user-select: none;
@@ -89,11 +102,22 @@ body.rtl {
     padding: 20px;
 }
 
-/* ==================== ТАБЛИЦА АДМИНОВ ==================== */
+/* ==================== 5. ТАБЛИЦЫ (общие стили для всех таблиц админки) ==================== */
+
+/* Обёртка вокруг таблицы — отвечает за фон, закругление, тень */
+.admin-table-wrapper {
+    background: rgba(255,255,255,0.08);     /* фон всей таблицы */
+    border-radius: 12px;
+    overflow: hidden;                       /* чтобы углы таблицы не вылезали */
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3); /* тень вокруг таблицы */
+    margin: 15px 0 25px 0;
+}
+
+/* Сама таблица */
 .admin-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 15px;
+    margin: 0;
 }
 
 .admin-table th,
@@ -104,20 +128,37 @@ body.rtl {
 }
 
 .admin-table th {
-    background: rgba(255,255,255,0.05);
+    background: rgba(255,255,255,0.05);     /* фон заголовков таблицы */
     font-weight: bold;
 }
 
-.admin-row {
+.admin-table tr.admin-row {
     cursor: pointer;
     transition: background 0.15s;
 }
 
-.admin-row:hover {
+.admin-table tr.admin-row:hover {
     background: rgba(255,255,255,0.08);
 }
 
-/* ==================== КНОПКИ ==================== */
+/* Закругление углов таблицы */
+.admin-table thead tr:first-child th:first-child {
+    border-top-left-radius: 12px;
+}
+
+.admin-table thead tr:first-child th:last-child {
+    border-top-right-radius: 12px;
+}
+
+.admin-table tbody tr:last-child td:first-child {
+    border-bottom-left-radius: 12px;
+}
+
+.admin-table tbody tr:last-child td:last-child {
+    border-bottom-right-radius: 12px;
+}
+
+/* ==================== 6. КНОПКИ (все кнопки в админке) ==================== */
 .btn {
     padding: 10px 20px;
     border: none;
@@ -128,6 +169,7 @@ body.rtl {
     transition: all 0.2s;
 }
 
+/* Зелёные кнопки "Сохранить" */
 .btn.save-btn {
     background: #4CAF50;
     color: white;
@@ -137,6 +179,7 @@ body.rtl {
     background: #45a049;
 }
 
+/* Красные кнопки "Удалить" */
 .btn.delete-btn {
     background: #e74c3c;
     color: white;
@@ -146,6 +189,7 @@ body.rtl {
     background: #c0392b;
 }
 
+/* Серые кнопки "Отмена" */
 .btn.cancel-btn {
     background: #7f8c8d;
     color: white;
@@ -155,17 +199,22 @@ body.rtl {
     background: #95a5a6;
 }
 
-.add-btn {
-    background: #2196F3;
+/* Общий базовый стиль для всех кнопок "Добавить" (одинаковый вид) */
+.add-btn-base {
+    background: #2196F3;          /* синий цвет для всех кнопок "Добавить" */
     color: white;
     margin-bottom: 15px;
 }
 
-.add-btn:hover {
-    background: #1976D2;
+.add-btn-base:hover {
+    background: #1976D2;          /* темнее при наведении */
 }
 
-/* ==================== ПОП-АП ==================== */
+.add-btn-base:active {
+    transform: scale(0.98);       /* лёгкое нажатие */
+}
+
+/* ==================== 7. ПОП-АПЫ (модальные окна) ==================== */
 .modal {
     display: none;
     position: fixed;
@@ -180,13 +229,63 @@ body.rtl {
 }
 
 .modal-content {
-    background: rgba(30,30,50,0.95);
+    background: rgba(30,30,50,0.95); /* тёмный полупрозрачный фон */
     padding: 30px;
     border-radius: 12px;
-    max-width: 450px;
-    width: 90%;
     box-shadow: 0 10px 30px rgba(0,0,0,0.6);
     color: white;
+    max-height: 90vh;
+    overflow-y: auto;               /* скролл внутри попапа, если контент большой */
+    padding-bottom: 40px;           /* отступ снизу для кнопок */
+}
+
+/* Адаптивная ширина попапа под разные экраны */
+.modal-content {
+    max-width: 90vw;                /* на мобилках — почти вся ширина экрана */
+    width: 90%;
+}
+
+/* На планшетах и маленьких ноутбуках */
+@media (min-width: 768px) {
+    .modal-content {
+        max-width: 600px;
+        width: 80%;
+    }
+}
+
+/* На больших ноутбуках и десктопах — шире, почти в 2 раза */
+@media (min-width: 1024px) {
+    .modal-content {
+        max-width: 900px;
+        width: 70%;
+        padding: 40px;              /* больше воздуха внутри на большом экране */
+    }
+}
+
+/* На очень широких мониторах — ограничиваем максимум */
+@media (min-width: 1400px) {
+    .modal-content {
+        max-width: 1000px;
+    }
+}
+
+/* Красивый скроллбар внутри попапа */
+.modal-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.05);
+    border-radius: 4px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.3);
+    border-radius: 4px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.5);
 }
 
 .close-btn {
@@ -211,36 +310,39 @@ body.rtl {
 }
 
 .form-group input,
-.form-group select {
+.form-group select,
+.form-group textarea {
     width: 100%;
     padding: 12px;
     border: 1px solid rgba(255,255,255,0.3);
     border-radius: 6px;
     font-size: 1em;
+    background: rgba(255,255,255,0.05);
+    color: white;
 }
 
-/* Тёмный и читаемый select для выбора роли */
-.form-group select#role {
-    background-color: #1e293b;          /* тёмно-серый/синий */
-    color: #e2e8f0;                     /* светлый текст */
+/* Тёмный и читаемый select */
+.form-group select {
+    background-color: #1e293b;
+    color: #e2e8f0;
     border: 1px solid #475569;
 }
 
-.form-group select#role:focus {
+.form-group select:focus {
     outline: none;
     border-color: #620f89;
     box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.3);
 }
 
-/* Опции в выпадающем списке тоже тёмные */
-.form-group select#role option {
+/* Опции в выпадающем списке */
+.form-group select option {
     background-color: #1e293b;
     color: #e2e8f0;
 }
 
 /* Блок подтверждения удаления */
 #deleteConfirmation {
-    background: rgba(239, 68, 68, 0.15);   /* лёгкий красный фон */
+    background: rgba(239, 68, 68, 0.15);
     border: 1px solid rgba(239, 68, 68, 0.4);
     border-radius: 8px;
     padding: 16px;
@@ -276,4 +378,137 @@ body.rtl {
         margin-top: 4px;
         margin-left: 0;
     }
+}
+
+/* ==================== 8. КОМПАКТНЫЕ ЧЕКБОКСЫ ==================== */
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #620f89; /* цвет галочки — можно поменять */
+    cursor: pointer;
+}
+
+.checkbox-group label {
+    margin: 0;
+    font-weight: normal;
+    cursor: pointer;
+}
+
+/* ==================== 9. СЛАЙДЕР ДЛЯ ВЕСА ВОПРОСА ==================== */
+.weight-slider-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.weight-slider-wrapper input[type="range"] {
+    flex: 1;
+    height: 8px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+    outline: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+/* Ползунок в Chrome/Safari */
+.weight-slider-wrapper input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #620f89;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(98,15,137,0.5);
+    transition: background 0.2s;
+}
+
+.weight-slider-wrapper input[type="range"]::-webkit-slider-thumb:hover {
+    background: #7c3aed;
+}
+
+/* Ползунок в Firefox */
+.weight-slider-wrapper input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: #620f89;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(98,15,137,0.5);
+    transition: background 0.2s;
+}
+
+.weight-slider-wrapper input[type="range"]::-moz-range-thumb:hover {
+    background: #7c3aed;
+}
+
+/* Трек в Firefox */
+.weight-slider-wrapper input[type="range"]::-moz-range-track {
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+}
+
+/* Окошко с числом */
+.weight-slider-wrapper input[type="number"] {
+    padding: 8px;
+    font-size: 1em;
+    text-align: center;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 6px;
+    color: white;
+    width: 80px;
+}
+
+/* ==================== 10. TEXTAREA ДЛЯ ВАРИАНТОВ ОТВЕТА ==================== */
+.form-group textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 10px;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 6px;
+    font-size: 0.95em;              /* чуть меньший шрифт для компактности */
+    background: rgba(255,255,255,0.05);
+    color: white;
+    resize: vertical;
+    font-family: inherit;
+    text-align: left;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    line-height: 1.45;
+}
+
+/* Плейсхолдер тоже слева и меньший */
+.form-group textarea::placeholder {
+    color: rgba(255,255,255,0.5);
+    text-align: left;
+    font-size: 0.95em;
+}
+
+/* Скроллбар внутри textarea */
+.form-group textarea::-webkit-scrollbar {
+    width: 8px;
+}
+
+.form-group textarea::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.05);
+    border-radius: 4px;
+}
+
+.form-group textarea::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.3);
+    border-radius: 4px;
+}
+
+.form-group textarea::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.5);
 }

@@ -42,15 +42,22 @@
                 {% include "partials/admin_management.html" %}
             {% endif %}
 
-            <!-- Заглушка для остальных ролей -->
-            <div class="dashboard-card">
-                <h3>{{ custom_gettext('Панель управления', section='dashboard') }}</h3>
-                <p>{{ custom_gettext('Ваша роль', section='dashboard') }}: 
-                    <strong>{{ session.admin_role or custom_gettext('Обычный администратор', 'dashboard') }}</strong>
-                </p>
-                <p>{{ custom_gettext('Панель успешно работает.', section='dashboard') }}</p>
-                <p>{{ custom_gettext('Функционал для вашей роли будет добавлен позже.', section='dashboard') }}</p>
-            </div>
+            {% if session.admin_role in ['super', 'full', 'questionnaire'] %}
+                <!-- Блок управления анкетой (для super, full, questionnaire) -->
+                {% include "partials/questionnaire_management.html" %}
+            {% endif %}
+
+            <!-- Заглушка показываем только если НЕТ ни одного блока выше -->
+            {% if session.admin_role not in ['super', 'full', 'questionnaire'] %}
+                <div class="dashboard-card">
+                    <h3>{{ custom_gettext('Панель управления', section='dashboard') }}</h3>
+                    <p>{{ custom_gettext('Ваша роль', section='dashboard') }}: 
+                        <strong>{{ session.admin_role or custom_gettext('Обычный администратор', 'dashboard') }}</strong>
+                    </p>
+                    <p>{{ custom_gettext('Панель успешно работает.', section='dashboard') }}</p>
+                    <p>{{ custom_gettext('Функционал для вашей роли будет добавлен позже.', section='dashboard') }}</p>
+                </div>
+            {% endif %}
         </main>
     </div>
 

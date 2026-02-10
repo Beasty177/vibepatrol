@@ -1,0 +1,178 @@
+<!-- backend/admin/templates/admin/partials/questionnaire_management.html -->
+
+<div class="admin-management-block">
+    <div class="accordion-header" onclick="toggleAdminBlock(this)">
+        {{ custom_gettext('Управление анкетой', 'questionnaire') }}
+    </div>
+
+    <div class="accordion-content" style="display: none;">
+        <div class="admin-actions">
+            <button class="btn add-btn-base add-question-btn" onclick="openQuestionPopup('add')">
+                {{ custom_gettext('Добавить вопрос', 'questionnaire') }}
+            </button>
+        </div>
+
+        <!-- Обёртка для фона, закругления, тени -->
+        <div class="admin-table-wrapper">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>{{ custom_gettext('Текст вопроса', 'questionnaire') }}</th>
+                        <th>{{ custom_gettext('Тип ответа', 'questionnaire') }}</th>
+                        <th>{{ custom_gettext('Обязательный', 'questionnaire') }}</th>
+                        <th>{{ custom_gettext('Вес вопроса (в процентах, 0–100)', 'questionnaire') }}</th>
+                        <th>{{ custom_gettext('Порядок в анкете', 'questionnaire') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for question in questions %}
+                    <tr class="admin-row" onclick="openQuestionPopup('edit', '{{ question.id }}', '{{ question.text_ru | e }}', '{{ question.type | e }}', '{{ question.required }}', '{{ question.weight }}', '{{ question.order }}', '{{ question.text_en | e or '' }}', '{{ question.text_he | e or '' }}', '{{ question.options | default([]) | tojson | replace('"', '\\"') | safe }}')">
+                        <td>{{ question.text_ru }}</td>
+                        <td>
+                            {% if question.type == 'multiple_choice' %}
+                                {{ custom_gettext('Выбор из вариантов', 'questionnaire') }}
+                            {% else %}
+                                {{ custom_gettext('Свободный текст', 'questionnaire') }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if question.required %}
+                                {{ custom_gettext('Да', 'questionnaire') }}
+                            {% else %}
+                                {{ custom_gettext('Нет', 'questionnaire') }}
+                            {% endif %}
+                        </td>
+                        <td>{{ question.weight or '-' }}</td>
+                        <td>{{ question.order or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Попап для добавления/редактирования вопроса -->
+<div id="questionPopup" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeQuestionPopup()">×</span>
+        
+        <h2 id="questionPopupTitle">
+            {{ custom_gettext('Добавить вопрос', 'questionnaire') }}
+        </h2>
+        
+        <form method="POST" id="questionForm" action="{{ url_for('admin.dashboard') }}">
+            <input type="hidden" name="action" id="question_action" value="">
+            <input type="hidden" name="question_id" id="question_id" value="">
+
+            <!-- Основной текст на русском (обязательный) -->
+            <div class="form-group">
+                <label for="text_ru">{{ custom_gettext('Текст вопроса (русский)', 'questionnaire') }} *</label>
+                <input type="text" id="text_ru" name="text_ru" required>
+            </div>
+
+            <!-- Переключатель дополнительных языков -->
+            <div class="form-group">
+                <label>{{ custom_gettext('Добавить/редактировать перевод на:', 'questionnaire') }}</label>
+                <select id="langSelector" onchange="toggleLanguageField(this.value)">
+                    <option value="">— Выберите язык —</option>
+                    <option value="en">English</option>
+                    <option value="he">עברית</option>
+                </select>
+            </div>
+
+            <!-- Поля переводов (скрыты по умолчанию) -->
+            <div id="translationFields">
+                <div class="form-group lang-field" id="enField" style="display: none;">
+                    <label for="text_en">{{ custom_gettext('Текст вопроса (английский)', 'questionnaire') }}</label>
+                    <input type="text" id="text_en" name="text_en">
+                </div>
+
+                <div class="form-group lang-field" id="heField" style="display: none;">
+                    <label for="text_he">{{ custom_gettext('Текст вопроса (иврит)', 'questionnaire') }}</label>
+                    <input type="text" id="text_he" name="text_he">
+                </div>
+            </div>
+
+            <!-- Остальные поля формы -->
+            <div class="form-group">
+                <label for="question_type">{{ custom_gettext('Тип ответа', 'questionnaire') }}</label>
+                <select id="question_type" name="type">
+                    <option value="multiple_choice">{{ custom_gettext('Выбор из вариантов', 'questionnaire') }}</option>
+                    <option value="free_text">{{ custom_gettext('Свободный текст', 'questionnaire') }}</option>
+                </select>
+            </div>
+
+            <!-- Компактная галочка на одной строке -->
+            <div class="form-group checkbox-group" style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+                <input type="checkbox" id="question_required" name="required">
+                <label for="question_required" style="margin: 0; cursor: pointer;">
+                    {{ custom_gettext('Обязательный вопрос', 'questionnaire') }}
+                </label>
+            </div>
+
+            <!-- Вес вопроса с ползунком и числом -->
+            <div class="form-group">
+                <label for="question_weight">{{ custom_gettext('Вес вопроса (в процентах, 0–100)', 'questionnaire') }}</label>
+                <div class="weight-slider-wrapper">
+                    <input type="range" id="weightSlider" name="weightSlider" min="0" max="100" step="5" value="50">
+                    <input type="number" id="question_weight" name="weight" min="0" max="100" step="5" value="50" style="width: 80px;">
+                </div>
+                <small style="color: rgba(255,255,255,0.7); display: block; margin-top: 8px;">
+                    {{ custom_gettext('Чем выше процент — тем важнее совпадение по этому вопросу', 'questionnaire') }}
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label for="question_order">{{ custom_gettext('Порядок в анкете', 'questionnaire') }}</label>
+                <input type="number" id="question_order" name="order" min="0" value="0">
+            </div>
+
+            <!-- Варианты ответа (каждый с новой строки) -->
+            <div class="form-group" id="optionsGroup" style="display: none;">
+                <label>{{ custom_gettext('Варианты ответа (каждый с новой строки)', 'questionnaire') }}</label>
+                <textarea id="question_options" name="options" rows="6" placeholder="Пиво
+Вино с колой
+Коктейль &quot;Секс на пляже&quot;
+Чай с ромашкой
+..."></textarea>
+                <small style="color: rgba(255,255,255,0.7); display: block; margin-top: 8px;">
+                    {{ custom_gettext('Каждый вариант — с новой строки. Можно использовать эмодзи, кавычки, длинные названия — всё сохранится.', 'questionnaire') }}
+                </small>
+            </div>
+
+            <!-- Блок кнопок в попапе (все на одной строке) -->
+            <div class="form-buttons" style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 24px;">
+                <!-- Слева — Сохранить -->
+                <button type="submit" class="btn save-btn">{{ custom_gettext('Сохранить', 'common') }}</button>
+            
+                <!-- Посередине — Отмена -->
+                <button type="button" class="btn cancel-btn" onclick="closeQuestionPopup()">
+                    {{ custom_gettext('Отмена', 'common') }}
+                </button>
+            
+                <!-- Справа — Удалить вопрос (видна только при редактировании) -->
+                <button type="button" id="deleteQuestionBtn" class="btn delete-btn" style="display: none;">
+                    {{ custom_gettext('Удалить вопрос', 'questionnaire') }}
+                </button>
+            </div>
+
+            <!-- Блок подтверждения удаления (появляется над кнопками при нажатии "Удалить") -->
+            <div id="deleteQuestionConfirmation" style="display: none; margin: 20px 0; padding: 15px; background: #ffebee; border-radius: 8px;">
+                <p style="margin: 0 0 12px 0; color: #c62828;">
+                    {{ custom_gettext('Вы уверены, что хотите удалить вопрос', 'questionnaire') }} 
+                    <strong id="confirmQuestionText"></strong>?
+                </p>
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" class="btn cancel-btn" onclick="cancelDeleteQuestion()">
+                        {{ custom_gettext('Отмена', 'common') }}
+                    </button>
+                    <button type="button" class="btn delete-btn" onclick="confirmDeleteQuestion()">
+                        {{ custom_gettext('Да, удалить', 'common') }}
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+

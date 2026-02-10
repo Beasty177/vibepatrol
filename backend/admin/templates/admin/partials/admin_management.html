@@ -7,38 +7,41 @@
 
     <div class="accordion-content" style="display: none;">
         <div class="admin-actions">
-            <button class="btn add-btn" onclick="openAdminPopup('add')">
+            <button class="btn add-btn-base add-admin-btn" onclick="openAdminPopup('add')">
                 {{ custom_gettext('Добавить админа', 'dashboard') }}
             </button>
         </div>
 
-        <table class="admin-table">
-            <thead>
-                <tr>
-                    <th>{{ custom_gettext('Логин', 'dashboard') }}</th>
-                    <th>{{ custom_gettext('Пароль', 'dashboard') }}</th>
-                    <th>{{ custom_gettext('Роль', 'dashboard') }}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for admin in admins %}
-                <tr class="admin-row" onclick="openAdminPopup('edit', '{{ admin.id }}', '{{ admin.username | e }}', '{{ admin.role | e }}')">
-                    <td>{{ admin.username }}</td>
-                    <td>{{ custom_gettext('******', 'dashboard') }}</td>
-                    <td>{{ admin.role }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <!-- Обёртка для фона, закругления, тени -->
+        <div class="admin-table-wrapper">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>{{ custom_gettext('Логин', 'dashboard') }}</th>
+                        <th>{{ custom_gettext('Пароль', 'dashboard') }}</th>
+                        <th>{{ custom_gettext('Роль', 'dashboard') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for admin in admins %}
+                    <tr class="admin-row" onclick="openAdminPopup('edit', '{{ admin.id }}', '{{ admin.username | e }}', '{{ admin.role | e }}')">
+                        <td>{{ admin.username }}</td>
+                        <td>{{ custom_gettext('******', 'dashboard') }}</td>
+                        <td>{{ admin.role }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
-<!-- Поп-ап -->
+<!-- Поп-ап редактирования/добавления админа -->
 <div id="adminPopup" class="modal">
     <div class="modal-content">
         <span class="close-btn" onclick="closeAdminPopup()">×</span>
         
-        <!-- Дефолтный заголовок — будет перезаписан в JS -->
+        <!-- Дефолтный заголовок — перезаписывается в JS -->
         <h2 id="popupTitle" data-add="{{ custom_gettext('Добавить администратора', 'dashboard') }}"
                              data-edit="{{ custom_gettext('Редактировать администратора', 'dashboard') }}"
                              data-delete="{{ custom_gettext('Удалить администратора?', 'dashboard') }}">
@@ -57,7 +60,7 @@
             <div class="form-group">
                 <label for="password">{{ custom_gettext('Пароль', 'dashboard') }}</label>
                 <input type="password" id="password" name="password">
-                <!-- Подсказка только для редактирования — управляется через JS -->
+                <!-- Подсказка показывается только при редактировании через JS -->
                 <small id="passwordHint" class="password-hint" style="display: none;">
                     ({{ custom_gettext('оставьте пустым, если не меняете', 'dashboard') }})
                 </small>

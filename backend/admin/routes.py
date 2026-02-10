@@ -2,7 +2,7 @@
 
 from flask import render_template, request, redirect, url_for, session, flash, g
 from . import admin_bp
-from models import Admin, db
+from models import Admin, db, Question
 import os
 import logging
 from logging.handlers import RotatingFileHandler
@@ -35,13 +35,24 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+# Декоратор для ролей, которые могут работать с анкетой
+def questionnaire_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        role = session.get('admin_role')
+        if role not in ['super', 'full', 'questionnaire']:
+            admin_logger.warning(f"Доступ к анкете запрещён для роли: {role}")
+            flash(custom_gettext('У вас нет прав для управления анкетой', 'dashboard'), 'error')
+            return redirect(url_for('admin.dashboard'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # LOGIN ROUTE
 # ──────────────────────────────────────────────────────────────────────────────
 @admin_bp.route('/login', methods=['GET', 'POST'])
 def admin_login():
-    # Устанавливаем язык для перевода прямо в роуте (чтобы работал с первого захода)
     lang = request.args.get('lang') or session.get('lang', 'ru')
     g.current_lang = lang
 
@@ -54,25 +65,23 @@ def admin_login():
 
         admin_logger.info(f"Попытка входа | Username: {username}")
 
-        # Проверка обычного админа из базы
         admin = Admin.query.filter_by(username=username).first()
         if admin and admin.check_password(password):
             session['is_admin'] = True
             session['admin_role'] = admin.role
-            session['admin_username'] = admin.username          # сохраняем логин в сессию
+            session['admin_username'] = admin.username
             session.permanent = True
             admin_logger.info(f"Успешный вход админа | Роль: {admin.role}")
             flash(custom_gettext('Успешный вход!', 'common'), 'success')
             return redirect(url_for('admin.dashboard'))
 
-        # Проверка супер-админа из .env
         super_username = os.getenv('ADMIN_USERNAME', 'super')
         super_password = os.getenv('ADMIN_PASSWORD')
 
         if username == super_username and password == super_password:
             session['is_admin'] = True
             session['admin_role'] = 'super'
-            session['admin_username'] = super_username          # сохраняем логин супер-админа
+            session['admin_username'] = super_username
             session.permanent = True
             admin_logger.info("Успешный вход СУПЕР-админа")
             flash(custom_gettext('Успешный вход (супер-админ)!', 'dashboard'), 'success')
@@ -99,6 +108,10 @@ def dashboard():
     if request.method == 'POST':
         action = request.form.get('action')
         admin_logger.info(f"POST действие: {action}")
+
+        # Отладка — все данные из формы
+        print("[DEBUG] ВСЕ ДАННЫЕ ИЗ ФОРМЫ:", dict(request.form))
+        admin_logger.info(f"[DEBUG] ВСЕ ДАННЫЕ ИЗ ФОРМЫ: {dict(request.form)}")
 
         # Добавление нового админа
         if action == 'add_admin':
@@ -204,9 +217,9 @@ def dashboard():
                     else:
                         old_username = admin.username
                         admin.username = new_username
-                        session['admin_username'] = new_username  # обновляем сессию
+                        session['admin_username'] = new_username
                         admin_logger.info(f"[PROFILE] Логин изменён с {old_username} → {new_username}")
-                # Если логин не меняется — всё равно идём дальше (для смены пароля)
+                # Если логин не меняется — всё равно идём дальше
 
                 # Смена пароля, если указан
                 if new_password:
@@ -223,17 +236,103 @@ def dashboard():
                     admin_logger.error(f"[PROFILE] Ошибка обновления профиля {current_username}: {str(e)}")
                     flash(custom_gettext('Ошибка при обновлении профиля', 'dashboard'), 'error')
 
-        # После любого POST — редирект, чтобы избежать повторной отправки формы
+        # ────────────────────────────────────────────────
+        # Добавление вопроса в анкету
+        # ────────────────────────────────────────────────
+        elif action == 'add_question':
+            text_ru = request.form.get('text_ru', '').strip()
+            text_en = request.form.get('text_en', '').strip() or None
+            text_he = request.form.get('text_he', '').strip() or None
+            qtype = request.form.get('type', 'multiple_choice')
+            required = 'required' in request.form
+            weight = float(request.form.get('weight', 50))
+            order = int(request.form.get('order', 0))
+
+            # Отладка вариантов
+            options_raw = request.form.get('options', '').strip()
+            print("[DEBUG] СЫРЫЕ ВАРИАНТЫ ИЗ ФОРМЫ:", repr(options_raw))
+            admin_logger.info(f"[DEBUG] СЫРЫЕ ВАРИАНТЫ: {repr(options_raw)}")
+
+            options_list = [line.strip() for line in options_raw.split('\n') if line.strip()]
+            print("[DEBUG] РАСПАРСЕННЫЕ ВАРИАНТЫ:", options_list)
+            admin_logger.info(f"[DEBUG] РАСПАРСЕННЫЕ ВАРИАНТЫ: {options_list}")
+
+            if not text_ru:
+                flash(custom_gettext('Текст вопроса на русском обязателен', 'questionnaire'), 'error')
+            else:
+                try:
+                    new_question = Question(
+                        text_ru=text_ru,
+                        text_en=text_en,
+                        text_he=text_he,
+                        type=qtype,
+                        required=required,
+                        weight=weight,
+                        order=order,
+                        options=options_list,  # ← сохраняем список вариантов
+                        is_active=True,
+                        countries=[]
+                    )
+                    db.session.add(new_question)
+                    db.session.commit()
+                    admin_logger.info(f"[QUESTION] Добавлен вопрос: {text_ru} (ru), вариантов: {len(options_list)}")
+                    flash(custom_gettext('Вопрос успешно добавлен', 'questionnaire'), 'success')
+                except Exception as e:
+                    db.session.rollback()
+                    admin_logger.error(f"[QUESTION] Ошибка добавления вопроса: {str(e)}")
+                    flash(custom_gettext('Ошибка при добавлении вопроса', 'questionnaire'), 'error')
+
+        # ────────────────────────────────────────────────
+        # Редактирование вопроса в анкете
+        # ────────────────────────────────────────────────
+        elif action == 'edit_question':
+            qid = request.form.get('question_id')
+            question = Question.query.get(qid)
+
+            if not question:
+                flash(custom_gettext('Вопрос не найден', 'questionnaire'), 'error')
+            else:
+                question.text_ru = request.form.get('text_ru', question.text_ru)
+                question.text_en = request.form.get('text_en', question.text_en)
+                question.text_he = request.form.get('text_he', question.text_he)
+                question.type = request.form.get('type', question.type)
+                question.required = 'required' in request.form
+                question.weight = float(request.form.get('weight', question.weight))
+                question.order = int(request.form.get('order', question.order))
+
+                # Отладка вариантов
+                options_raw = request.form.get('options', '').strip()
+                print("[DEBUG] СЫРЫЕ ВАРИАНТЫ ИЗ ФОРМЫ (edit):", repr(options_raw))
+                admin_logger.info(f"[DEBUG] СЫРЫЕ ВАРИАНТЫ (edit): {repr(options_raw)}")
+
+                options_list = [line.strip() for line in options_raw.split('\n') if line.strip()]
+                print("[DEBUG] РАСПАРСЕННЫЕ ВАРИАНТЫ (edit):", options_list)
+                admin_logger.info(f"[DEBUG] РАСПАРСЕННЫЕ ВАРИАНТЫ (edit): {options_list}")
+
+                question.options = options_list  # ← обновляем варианты
+
+                try:
+                    db.session.commit()
+                    admin_logger.info(f"[QUESTION] Обновлён вопрос ID {qid}: {question.text_ru} (ru), вариантов: {len(options_list)}")
+                    flash(custom_gettext('Вопрос успешно обновлён', 'questionnaire'), 'success')
+                except Exception as e:
+                    db.session.rollback()
+                    admin_logger.error(f"[QUESTION] Ошибка обновления вопроса ID {qid}: {str(e)}")
+                    flash(custom_gettext('Ошибка при обновлении вопроса', 'questionnaire'), 'error')
+
+        # После любого POST — редирект
         return redirect(url_for('admin.dashboard'))
 
     # GET — отображаем главную страницу
     admins = Admin.query.all()
-    admin_logger.info(f"Отображаем {len(admins)} админов в таблице")
+    questions = Question.query.order_by(Question.order).all()  # передаём вопросы в шаблон
+    admin_logger.info(f"Отображаем {len(admins)} админов и {len(questions)} вопросов в таблице")
 
     return render_template(
         'dashboard.html',
         title=custom_gettext('Админ-панель VibePatrol', 'dashboard'),
         admins=admins,
+        questions=questions,
         custom_gettext=custom_gettext
     )
 
@@ -244,9 +343,10 @@ def dashboard():
 
 @admin_bp.route('/questionnaire')
 @admin_required
+@questionnaire_required
 def questionnaire_list():
     admin_logger.info("Зашли на /admin/questionnaire")
-    questions = []  # потом Question.query.all()
+    questions = Question.query.order_by(Question.order).all()
     return render_template('questionnaire_list.html', questions=questions)
 
 
@@ -255,7 +355,7 @@ def admin_logout():
     admin_logger.info(f"Админ {session.get('admin_role')} вышел из системы")
     session.pop('is_admin', None)
     session.pop('admin_role', None)
-    session.pop('admin_username', None)  # чистим логин из сессии
+    session.pop('admin_username', None)
     session.modified = True
     flash(custom_gettext('Вы успешно вышли из админки', 'dashboard'), 'info')
     return redirect(url_for('admin.admin_login'))

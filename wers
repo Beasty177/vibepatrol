@@ -1,0 +1,15 @@
+                                     Table "public.questions"
+  Column  |          Type          | Collation | Nullable |                Default                
+----------+------------------------+-----------+----------+---------------------------------------
+ id       | integer                |           | not null | nextval('questions_id_seq'::regclass)
+ text     | character varying(500) |           | not null | 
+ type     | character varying(50)  |           |          | 
+ options  | json                   |           |          | 
+ required | boolean                |           |          | 
+ weight   | double precision       |           |          | 
+ order    | integer                |           |          | 
+Indexes:
+    "questions_pkey" PRIMARY KEY, btree (id)
+Referenced by:
+    TABLE "answers" CONSTRAINT "answers_question_id_fkey" FOREIGN KEY (question_id) REFERENCES questions(id)
+
