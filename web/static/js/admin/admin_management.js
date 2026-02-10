@@ -168,13 +168,18 @@ function closeAdminPopup() {
 // ────────────────────────────────────────────────
 function openProfilePopup() {
     const popup = document.getElementById('profilePopup');
-    if (popup) popup.style.display = 'flex';
-    else console.error('[PROFILE] Попап #profilePopup не найден');
+    if (popup) {
+        popup.style.display = 'flex';
+    } else {
+        console.error('[PROFILE] Попап #profilePopup не найден');
+    }
 }
 
 function closeProfilePopup() {
     const popup = document.getElementById('profilePopup');
-    if (popup) popup.style.display = 'none';
+    if (popup) {
+        popup.style.display = 'none';
+    }
     
     const form = document.getElementById('profileForm');
     if (form) form.reset();
@@ -224,6 +229,37 @@ function syncWeightInputs() {
     number.addEventListener('input', updateSlider);
 
     number.value = slider.value;
+}
+
+// ────────────────────────────────────────────────
+// ПОЛУЧЕНИЕ МАКСИМАЛЬНОГО ORDER ИЗ HIDDEN INPUT
+// ────────────────────────────────────────────────
+function getMaxOrder() {
+    const maxOrderInput = document.getElementById('max_order');
+    if (!maxOrderInput) {
+        console.log("[ERROR] Hidden input #max_order НЕ НАЙДЕН в попапе");
+        return 20;
+    }
+
+    const value = parseInt(maxOrderInput.value);
+    console.log("[DEBUG] MAX ORDER ИЗ HIDDEN INPUT:", value);
+    return value || 20;
+}
+
+// ────────────────────────────────────────────────
+// ИЗМЕНЕНИЕ ORDER СТРЕЛКАМИ
+// ────────────────────────────────────────────────
+function changeOrder(delta) {
+    const orderInput = document.getElementById('question_order');
+    if (!orderInput) return;
+
+    let current = parseInt(orderInput.value) || 0;
+    let newVal = current + delta;
+
+    const maxOrder = getMaxOrder();
+    newVal = Math.max(1, Math.min(maxOrder, newVal)); // от 1 до max
+
+    orderInput.value = newVal;
 }
 
 // ────────────────────────────────────────────────
@@ -298,7 +334,7 @@ function openQuestionPopup(mode, id = '', text_ru = '', type = '', required = fa
         requiredCheckbox.checked = false;
         weightInput.value = '50';
         weightSlider.value = '50';
-        orderInput.value = '0';
+        orderInput.value = getMaxOrder(); // ← сразу ставим следующий номер
         optionsTextarea.value = '';
         if (optionsGroup) optionsGroup.style.display = 'block';
         if (deleteBtn) deleteBtn.style.display = 'none';
@@ -319,7 +355,7 @@ function openQuestionPopup(mode, id = '', text_ru = '', type = '', required = fa
 
         // Заполняем варианты
         let optionsArray = [];
-        console.log("[DEBUG] Полученные options:", options); // отладка
+        console.log("[DEBUG] Полученные options:", options);
 
         try {
             if (options && options.trim() !== '' && options.trim() !== '[]') {

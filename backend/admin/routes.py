@@ -7,6 +7,7 @@ import os
 import logging
 from logging.handlers import RotatingFileHandler
 from functools import wraps
+from datetime import datetime
 
 # Импорт функции перевода
 from translations import custom_gettext
@@ -109,9 +110,10 @@ def dashboard():
         action = request.form.get('action')
         admin_logger.info(f"POST действие: {action}")
 
-        # Отладка — все данные из формы
-        print("[DEBUG] ВСЕ ДАННЫЕ ИЗ ФОРМЫ:", dict(request.form))
-        admin_logger.info(f"[DEBUG] ВСЕ ДАННЫЕ ИЗ ФОРМЫ: {dict(request.form)}")
+        # Отладка — ВСЕ данные из формы при любом POST
+        form_data = dict(request.form)
+        print("[DEBUG] ВСЕ ДАННЫЕ ИЗ ФОРМЫ:", form_data)
+        admin_logger.info(f"[DEBUG] ВСЕ ДАННЫЕ ИЗ ФОРМЫ: {form_data}")
 
         # Добавление нового админа
         if action == 'add_admin':
@@ -248,39 +250,63 @@ def dashboard():
             weight = float(request.form.get('weight', 50))
             order = int(request.form.get('order', 0))
 
-            # Отладка вариантов
             options_raw = request.form.get('options', '').strip()
-            print("[DEBUG] СЫРЫЕ ВАРИАНТЫ ИЗ ФОРМЫ:", repr(options_raw))
-            admin_logger.info(f"[DEBUG] СЫРЫЕ ВАРИАНТЫ: {repr(options_raw)}")
-
             options_list = [line.strip() for line in options_raw.split('\n') if line.strip()]
-            print("[DEBUG] РАСПАРСЕННЫЕ ВАРИАНТЫ:", options_list)
-            admin_logger.info(f"[DEBUG] РАСПАРСЕННЫЕ ВАРИАНТЫ: {options_list}")
+
+            # Отладка — всё, что пришло в форму
+            print("[DEBUG] ADD_QUESTION — ПОЛНЫЕ ДАННЫЕ ФОРМЫ:", dict(request.form))
+            admin_logger.info(f"[DEBUG] ADD_QUESTION — ПОЛНЫЕ ДАННЫЕ ФОРМЫ: {dict(request.form)}")
+
+            print("[DEBUG] ADD_QUESTION — СЫРЫЕ ВАРИАНТЫ:", repr(options_raw))
+            admin_logger.info(f"[DEBUG] ADD_QUESTION — СЫРЫЕ ВАРИАНТЫ: {repr(options_raw)}")
+
+            print("[DEBUG] ADD_QUESTION — РАСПАРСЕННЫЕ ВАРИАНТЫ:", options_list)
+            admin_logger.info(f"[DEBUG] ADD_QUESTION — РАСПАРСЕННЫЕ ВАРИАНТЫ: {options_list}")
 
             if not text_ru:
                 flash(custom_gettext('Текст вопроса на русском обязателен', 'questionnaire'), 'error')
-            else:
-                try:
-                    new_question = Question(
-                        text_ru=text_ru,
-                        text_en=text_en,
-                        text_he=text_he,
-                        type=qtype,
-                        required=required,
-                        weight=weight,
-                        order=order,
-                        options=options_list,  # ← сохраняем список вариантов
-                        is_active=True,
-                        countries=[]
-                    )
-                    db.session.add(new_question)
-                    db.session.commit()
-                    admin_logger.info(f"[QUESTION] Добавлен вопрос: {text_ru} (ru), вариантов: {len(options_list)}")
-                    flash(custom_gettext('Вопрос успешно добавлен', 'questionnaire'), 'success')
-                except Exception as e:
-                    db.session.rollback()
-                    admin_logger.error(f"[QUESTION] Ошибка добавления вопроса: {str(e)}")
-                    flash(custom_gettext('Ошибка при добавлении вопроса', 'questionnaire'), 'error')
+                return redirect(url_for('admin.dashboard'))
+
+            try:
+                max_order = db.session.query(db.func.max(Question.order)).scalar() or 0
+
+                # Если order = 0 — ставим max + 1
+                if order == 0:
+                    order = max_order + 1
+
+                # Сдвигаем все вопросы с order >= order на +1
+                db.session.query(Question).filter(Question.order >= order).update(
+                    {Question.order: Question.order + 1},
+                    synchronize_session=False
+                )
+
+                new_question = Question(
+                    text_ru=text_ru,
+                    text_en=text_en,
+                    text_he=text_he,
+                    type=qtype,
+                    required=required,
+                    weight=weight,
+                    order=order,
+                    options=options_list,
+                    is_active=True,
+                    countries=[]
+                )
+                db.session.add(new_question)
+                db.session.commit()
+
+                # Нормализация — пересчитываем все order в 1,2,3...
+                questions = Question.query.order_by(Question.order).all()
+                for i, q in enumerate(questions, 1):
+                    q.order = i
+                db.session.commit()
+
+                admin_logger.info(f"[QUESTION] Добавлен вопрос: {text_ru} (ru), order={order}, вариантов: {len(options_list)}")
+                flash(custom_gettext('Вопрос успешно добавлен', 'questionnaire'), 'success')
+            except Exception as e:
+                db.session.rollback()
+                admin_logger.error(f"[QUESTION] Ошибка добавления вопроса: {str(e)}")
+                flash(custom_gettext('Ошибка при добавлении вопроса', 'questionnaire'), 'error')
 
         # ────────────────────────────────────────────────
         # Редактирование вопроса в анкете
@@ -291,41 +317,77 @@ def dashboard():
 
             if not question:
                 flash(custom_gettext('Вопрос не найден', 'questionnaire'), 'error')
-            else:
+                return redirect(url_for('admin.dashboard'))
+
+            old_order = question.order
+            new_order = int(request.form.get('order', old_order))
+
+            options_raw = request.form.get('options', '').strip()
+            options_list = [line.strip() for line in options_raw.split('\n') if line.strip()]
+
+            print("[DEBUG] EDIT_QUESTION — ПОЛНЫЕ ДАННЫЕ ФОРМЫ:", dict(request.form))
+            admin_logger.info(f"[DEBUG] EDIT_QUESTION — ПОЛНЫЕ ДАННЫЕ ФОРМЫ: {dict(request.form)}")
+
+            print("[DEBUG] EDIT_QUESTION — СЫРЫЕ ВАРИАНТЫ:", repr(options_raw))
+            admin_logger.info(f"[DEBUG] EDIT_QUESTION — СЫРЫЕ ВАРИАНТЫ: {repr(options_raw)}")
+
+            print("[DEBUG] EDIT_QUESTION — РАСПАРСЕННЫЕ ВАРИАНТЫ:", options_list)
+            admin_logger.info(f"[DEBUG] EDIT_QUESTION — РАСПАРСЕННЫЕ ВАРИАНТЫ: {options_list}")
+
+            try:
+                if new_order != old_order:
+                    # Сдвигаем вопросы после старого порядка назад
+                    db.session.query(Question).filter(Question.order > old_order).update(
+                        {Question.order: Question.order - 1},
+                        synchronize_session=False
+                    )
+                    # Сдвигаем вопросы после нового порядка вперёд
+                    db.session.query(Question).filter(Question.order >= new_order).update(
+                        {Question.order: Question.order + 1},
+                        synchronize_session=False
+                    )
+
                 question.text_ru = request.form.get('text_ru', question.text_ru)
                 question.text_en = request.form.get('text_en', question.text_en)
                 question.text_he = request.form.get('text_he', question.text_he)
                 question.type = request.form.get('type', question.type)
                 question.required = 'required' in request.form
                 question.weight = float(request.form.get('weight', question.weight))
-                question.order = int(request.form.get('order', question.order))
+                question.order = new_order
+                question.options = options_list
 
-                # Отладка вариантов
-                options_raw = request.form.get('options', '').strip()
-                print("[DEBUG] СЫРЫЕ ВАРИАНТЫ ИЗ ФОРМЫ (edit):", repr(options_raw))
-                admin_logger.info(f"[DEBUG] СЫРЫЕ ВАРИАНТЫ (edit): {repr(options_raw)}")
+                db.session.commit()
 
-                options_list = [line.strip() for line in options_raw.split('\n') if line.strip()]
-                print("[DEBUG] РАСПАРСЕННЫЕ ВАРИАНТЫ (edit):", options_list)
-                admin_logger.info(f"[DEBUG] РАСПАРСЕННЫЕ ВАРИАНТЫ (edit): {options_list}")
+                # Финальная нормализация всех номеров в 1,2,3...
+                questions = Question.query.order_by(Question.order).all()
+                for i, q in enumerate(questions, 1):
+                    q.order = i
+                db.session.commit()
 
-                question.options = options_list  # ← обновляем варианты
-
-                try:
-                    db.session.commit()
-                    admin_logger.info(f"[QUESTION] Обновлён вопрос ID {qid}: {question.text_ru} (ru), вариантов: {len(options_list)}")
-                    flash(custom_gettext('Вопрос успешно обновлён', 'questionnaire'), 'success')
-                except Exception as e:
-                    db.session.rollback()
-                    admin_logger.error(f"[QUESTION] Ошибка обновления вопроса ID {qid}: {str(e)}")
-                    flash(custom_gettext('Ошибка при обновлении вопроса', 'questionnaire'), 'error')
+                admin_logger.info(f"[QUESTION] Обновлён вопрос ID {qid}: {question.text_ru} (ru), order={new_order}, вариантов: {len(options_list)}")
+                flash(custom_gettext('Вопрос успешно обновлён', 'questionnaire'), 'success')
+            except Exception as e:
+                db.session.rollback()
+                admin_logger.error(f"[QUESTION] Ошибка обновления вопроса ID {qid}: {str(e)}")
+                flash(custom_gettext('Ошибка при обновлении вопроса', 'questionnaire'), 'error')
 
         # После любого POST — редирект
         return redirect(url_for('admin.dashboard'))
 
     # GET — отображаем главную страницу
     admins = Admin.query.all()
-    questions = Question.query.order_by(Question.order).all()  # передаём вопросы в шаблон
+    questions = Question.query.order_by(Question.order).all()
+
+    # Вычисляем максимальный order и следующий для нового вопроса
+    max_order = db.session.query(db.func.max(Question.order)).scalar() or 0
+    max_order_for_new = max_order + 1
+
+    # Отладка в терминал — чтобы видеть, что реально считается
+    print("[DEBUG] === GET DASHBOARD ===")
+    print("[DEBUG] Количество вопросов в базе:", len(questions))
+    print("[DEBUG] Максимальный order в базе:", max_order)
+    print("[DEBUG] Следующий номер для нового вопроса:", max_order_for_new)
+
     admin_logger.info(f"Отображаем {len(admins)} админов и {len(questions)} вопросов в таблице")
 
     return render_template(
@@ -333,7 +395,8 @@ def dashboard():
         title=custom_gettext('Админ-панель VibePatrol', 'dashboard'),
         admins=admins,
         questions=questions,
-        custom_gettext=custom_gettext
+        custom_gettext=custom_gettext,
+        max_order=max_order_for_new  # ← передаём в шаблон
     )
 
 

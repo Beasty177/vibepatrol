@@ -54,6 +54,7 @@
 
 <!-- Попап для добавления/редактирования вопроса -->
 <div id="questionPopup" class="modal">
+    <input type="hidden" id="max_order" value="{{ max_order }}">
     <div class="modal-content">
         <span class="close-btn" onclick="closeQuestionPopup()">×</span>
         
@@ -125,13 +126,18 @@
 
             <div class="form-group">
                 <label for="question_order">{{ custom_gettext('Порядок в анкете', 'questionnaire') }}</label>
-                <input type="number" id="question_order" name="order" min="0" value="0">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button type="button" onclick="changeOrder(-1)" class="btn" style="padding: 8px 12px;">-</button>
+                    <input type="number" id="question_order" name="order" min="0" readonly value="0" style="width: 80px; text-align: center; background: rgba(255,255,255,0.1);">
+                    <button type="button" onclick="changeOrder(1)" class="btn" style="padding: 8px 12px;">+</button>
+                </div>
             </div>
 
             <!-- Варианты ответа (каждый с новой строки) -->
             <div class="form-group" id="optionsGroup" style="display: none;">
                 <label>{{ custom_gettext('Варианты ответа (каждый с новой строки)', 'questionnaire') }}</label>
-                <textarea id="question_options" name="options" rows="6" placeholder="Пиво
+                <textarea id="question_options" name="options" rows="6" placeholder="
+Пиво
 Вино с колой
 Коктейль &quot;Секс на пляже&quot;
 Чай с ромашкой
