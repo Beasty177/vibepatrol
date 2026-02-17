@@ -1,0 +1,176 @@
+<!-- 
+    Файл: backend/admin/templates/admin/partials/location_management.html
+    Описание: Блок управления локациями — таблица + кнопка добавления + кастомный попап
+    Город перед названием в таблице
+    Кнопки "Редактировать/Удалить" убраны из строк — редактирование по клику на строку
+    Нет фото — показываем "Нет"
+    Заголовки попапа и "Зоны" — чистый Jinja, без JS-косяков
+-->
+
+<div class="admin-management-block">
+    <div class="accordion-header" onclick="toggleAdminBlock(this)">
+        {{ custom_gettext('Локации вечеринок', section='locations') }}
+    </div>
+
+    <div class="accordion-content">
+        <div class="admin-actions">
+            <button class="btn add-btn-base" onclick="openLocationPopup('add')">
+                + {{ custom_gettext('Добавить локацию', section='locations') }}
+            </button>
+        </div>
+
+        <div class="admin-table-wrapper">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>{{ custom_gettext('Город', section='locations') }}</th>
+                        <th>{{ custom_gettext('Название', section='locations') }}</th>
+                        <th>{{ custom_gettext('Тип', section='locations') }}</th>
+                        <th>{{ custom_gettext('Зон', section='locations') }}</th>
+                        <th>{{ custom_gettext('Фото', section='locations') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if locations %}
+                        {% for loc in locations %}
+                            <tr class="admin-row" onclick="openLocationPopup('edit', {{ loc.id }}, '{{ loc.name | e }}', '{{ loc.city | e or '' }}', '{{ loc.country | e or '' }}', '{{ loc.type or 'club' }}', '{{ loc.address | e or '' }}', '{{ loc.coordinates | e or '' }}', '{{ loc.contact_info | e or '' }}', '{{ loc.additional_info | e or '' }}', '{{ loc.description | e or '' }}', '{{ loc.image_url | e or '' }}')">
+                                <td>{{ loc.id }}</td>
+                                <td>{{ loc.city or '—' }}</td>
+                                <td>{{ loc.name }}</td>
+                                <td>
+                                    {% if loc.type == 'club' %}{{ custom_gettext('club', section='locations') }}
+                                    {% elif loc.type == 'bar' %}{{ custom_gettext('bar', section='locations') }}
+                                    {% elif loc.type == 'cafe' %}{{ custom_gettext('cafe', section='locations') }}
+                                    {% elif loc.type == 'festival' %}{{ custom_gettext('festival', section='locations') }}
+                                    {% else %}{{ loc.type or '—' }}{% endif %}
+                                </td>
+                                <td>{{ loc.zones | length if loc.zones else 0 }}</td>
+                                <td>
+                                    {% if loc.image_url %}
+                                        <img src="{{ loc.image_url }}" alt="Фото" style="max-width:60px; border-radius:4px; object-fit:cover;">
+                                    {% else %}
+                                        Нет
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4" style="color: rgba(255,255,255,0.6);">
+                                {{ custom_gettext('Пока нет добавленных локаций', section='locations') }}
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Кастомный попап локаций -->
+<div id="locationPopup" class="modal" style="display:none;">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeLocationPopup()">×</span>
+        
+        <h2 id="locationPopupTitle">{{ custom_gettext('Добавить локацию', section='locations') }}</h2>
+        
+        <form id="locationForm" method="POST" action="{{ url_for('admin.dashboard') }}" enctype="multipart/form-data">
+            <input type="hidden" name="action" id="location_action" value="">
+            <input type="hidden" name="location_id" id="location_id" value="">
+            <input type="hidden" name="delete_image" id="delete_image" value="0">
+
+            <!-- Основные поля -->
+            <div class="form-group">
+                <label for="name">{{ custom_gettext('Название', section='locations') }} *</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="city">{{ custom_gettext('Город', section='locations') }}</label>
+                        <input type="text" id="city" name="city">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="country">{{ custom_gettext('Страна', section='locations') }}</label>
+                        <input type="text" id="country" name="country">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="type">{{ custom_gettext('Тип', section='locations') }}</label>
+                <select id="type" name="type">
+                    <option value="club">{{ custom_gettext('club', section='locations') }}</option>
+                    <option value="bar">{{ custom_gettext('bar', section='locations') }}</option>
+                    <option value="cafe">{{ custom_gettext('cafe', section='locations') }}</option>
+                    <option value="festival">{{ custom_gettext('festival', section='locations') }}</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="address">{{ custom_gettext('Адрес', section='locations') }}</label>
+                <input type="text" id="address" name="address">
+            </div>
+
+            <div class="form-group">
+                <label for="coordinates">{{ custom_gettext('Координаты (ссылка на карты)', section='locations') }}</label>
+                <input type="text" id="coordinates" name="coordinates">
+            </div>
+
+            <div class="form-group">
+                <label for="description">{{ custom_gettext('Описание локации', section='locations') }}</label>
+                <textarea id="description" name="description" rows="3"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="contact_info">{{ custom_gettext('Контакты', section='locations') }}</label>
+                <textarea id="contact_info" name="contact_info" rows="2"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="additional_info">{{ custom_gettext('Дополнительная информация', section='locations') }}</label>
+                <textarea id="additional_info" name="additional_info" rows="3"></textarea>
+            </div>
+
+            <!-- Фото -->
+            <div class="form-group">
+                <label>{{ custom_gettext('Фото локации', section='locations') }}</label>
+                <div id="imagePreview" style="margin:10px 0;">
+                    <img id="previewImg" style="max-width:200px; border-radius:8px; display:none;">
+                    <p id="noImageText" style="color:rgba(255,255,255,0.6);">Нет</p>
+                </div>
+                <input type="file" id="image" name="image" accept="image/*">
+                <small class="form-text text-muted">Макс. 2 МБ, jpg/png/gif</small>
+                <button type="button" id="removeImageBtn" class="btn btn-sm btn-outline-danger mt-2" style="display:none;">
+                    {{ custom_gettext('Удалить фото', section='locations') }}
+                </button>
+            </div>
+
+            <!-- Зоны и споты -->
+            <div class="form-group">
+                <h6>{{ custom_gettext('Зоны', section='locations') }}</h6>
+                <div id="zonesContainer"></div>
+                <button type="button" class="btn add-btn-base mt-2" id="addZoneBtn">
+                    + {{ custom_gettext('Добавить зону', section='locations') }}
+                </button>
+            </div>
+
+            <!-- Кнопки как в анкете -->
+            <div class="form-buttons" style="display:flex; justify-content:space-between; margin-top:24px;">
+                <button type="button" class="btn save-btn" id="saveLocationBtn">
+                    {{ custom_gettext('Сохранить', 'common') }}
+                </button>
+                <button type="button" class="btn cancel-btn" onclick="closeLocationPopup()">
+                    {{ custom_gettext('Отмена', 'common') }}
+                </button>
+                <button type="button" id="deleteLocationBtn" class="btn delete-btn" style="display:none;">
+                    {{ custom_gettext('Удалить локацию', section='locations') }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
